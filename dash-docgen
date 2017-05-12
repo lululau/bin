@@ -1,0 +1,36 @@
+#!/bin/bash
+
+if [ $# != 3 ]
+then
+  cat <<EOF
+Usage:
+        dash-docgen <doc name> <default keyword> <url>
+EOF
+else
+  DOC_NAME=$1
+  KEYWORD=$2
+  URL=$3
+  mkdir -p "${DOC_NAME}.docset/Contents/Resources/Documents"
+  cat <<EOF > "${DOC_NAME}.docset/Contents/Info.plist"   
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>${DOC_NAME}</string>
+  <key>CFBundleName</key>
+  <string>${DOC_NAME}</string>
+  <key>DocSetPlatformFamily</key>
+  <string>${KEYWORD}</string>
+  <key>dashIndexFilePath</key>
+  <string>${URL}</string>
+  <key>isDashDocset</key>
+  <true/>
+  <key>isJavaScriptEnabled</key>
+  <true/>
+</dict>
+</plist>
+EOF
+  sqlite3 "${DOC_NAME}.docset/Contents/Resources/docSet.dsidx" 'CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT);'
+fi
+

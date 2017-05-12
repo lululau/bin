@@ -1,0 +1,23 @@
+#!/bin/bash
+src_file=$1
+
+if [ -n "$2" ]
+then
+    cp "$src_file" "${src_file%.*}$2.${src_file##*.}"
+fi
+
+: <<'EOF'
+size=$(identify a.png | cut -d' ' -f 3)
+width=${size%x*}
+width=$((width+112))
+height=${size#*x}
+height=$((height+112))
+EOF
+
+convert -border 20x20 -bordercolor white "$src_file" "$src_file".tmp
+convert "$src_file".tmp \( +clone -background black -shadow 75x15 \) \
+    +swap -background none -layers merge +repage "$src_file"
+rm "$src_file".tmp
+
+# convert  -fill black -pointsize 14 -draw \
+# "text $((width-100)),$((height-50)) \"liuxiang\"" c.png d.png

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+/usr/bin/env spring stop
+/usr/bin/env spring status

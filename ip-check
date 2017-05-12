@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# useage:
+#    ip-check 192.168.1.0/24
+#    ip-check 不带参数和上面的等价
+#    ip-check 192.168.1.30,192.168.1.40,192.168.1.50
+#    ip-check 192.168.1.20-192.168.1.30
+
+ANSI_COLOR_GREEN="32"
+ANSI_COLOR_RED="31"
+
+function echo_color() {
+  color=$1
+  msg=$2
+  if [ -t 1 ]; then
+    echo -e "\e[${color}m${msg}\e[0m"
+  else
+
+    # 如果标准输出不是TTY，则强制不输出ANSI颜色控制字符
+    echo -e "$msg"
+  fi
+}
+
+function echo_green() {
+  msg=$1
+  echo_color "$ANSI_COLOR_GREEN" "$msg"
+}
+
+function echo_red() {
+  msg=$1
+  echo_color "$ANSI_COLOR_RED" "$msg"
+}
+
+function check_ip() {
+  ip=$1
+  if ping -c1 -t1 "$ip" &>/dev/null ; then
+    echo_red "$ip\t\tNOW USED"
+  else
+    echo_green "$ip\t\tNOW AVAILABLE"
+  fi
+}
+
+function ip_str_to_int() {
+  ip_str=$1
+  ip_arr=($(gawk -F. NF=NF <<<$ip_str))
+  echo $((2**24*${ip_arr[0]} + 2**16*${ip_arr[1]} + 2**8*${ip_arr[2]} + ${ip_arr[3]}))
+}
+
+function ip_int_to_str() {
+  ip_int=$1
+  ip_b=$(perl -e "printf '%b', $ip_int")
+  i=$((${#ip_b}-24))
+  field_1=$((2#${ip_b:0:i}))
+  field_2=$((2#${ip_b:i:8}))
+  field_3=$((2#${ip_b:i+8:8}))
+  field_4=$((2#${ip_b:i+16:8}))
+  echo "$field_1.$field_2.$field_3.$field_4"
+}
+
+if [[ -z "$1" ]]; then
+  IPS="192.168.1.0/24"
+else
+  IPS="$1"
+fi
+  
+if grep -q ',' <<<"$IPS"; then
+  echo "$IPS" | gawk -F, -v "OFS=\n" NF=NF | while read ip
+  do
+    check_ip "$ip"
+  done
+elif grep -q '-' <<<"$IPS" ; then
+  start_ip_str=${IPS%-*}
+  end_ip_str=${IPS#*-}
+  start_ip=$(ip_str_to_int $start_ip_str)
+  end_ip=$(ip_str_to_int $end_ip_str)
+  for ip in $(perl -le "print for ($start_ip .. $end_ip)"); do
+    check_ip $(ip_int_to_str $ip)
+  done
+elif grep -q '/' <<<"$IPS" ; then
+  ip_str=${IPS%/*}
+  net_bits=${IPS#*/}
+  host_bits=$((32-net_bits))
+  ip=$(ip_str_to_int $ip_str)
+  ip_b=$(perl -le "printf '%b', '$ip'")
+  start_ip_b=${ip_b:0:$net_bits}$(perl -e "print 0 x $host_bits")
+  end_ip_b=${ip_b:0:$net_bits}$(perl -e "print 1 x $host_bits")
+  start_ip=$((2#$start_ip_b))
+  end_ip=$((2#$end_ip_b))
+  for ip in $(perl -le "print for ($start_ip .. $end_ip)"); do
+    check_ip $(ip_int_to_str $ip)
+  done
+fi

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+cat | imsg-notify 'infinite.loop.1@foxmail.com'

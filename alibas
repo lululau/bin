@@ -1,0 +1,100 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then exit 1; fi
+
+BASTION=login1.et2.alibaba.org
+
+if echo "$1" | grep -q 'admin@'; then
+  ADMIN=true
+  HOST=${1##*@}
+else
+  HOST=$1
+fi
+
+USER=$(security find-generic-password -s alibaba-domain-password  | perl -ne 'print if s#.*"acct"<blob>="(.*?)"#$1#')
+if echo "$HOST" | grep -q -v '\.et2$'; then
+    HOST="$HOST.umeng.com.et2"
+fi
+
+domain_psw=$(security find-generic-password -ws alibaba-domain-password)
+server_psw=$(security find-generic-password -ws alibaba-servers-password)
+shift
+if [ -n "$1" ]; then
+  token=$1
+else
+  echo -n 'AliLang Token: '; stty -echo; read token; stty echo
+fi
+
+if [ -n "$ADMIN" ]; then
+
+  ADMIN=$(cat <<EOF
+expect -re ".*($HOST|➜).*"
+send "sudo su admin\r"
+expect "*pass*"
+send "$domain_psw\r"
+EOF
+       )
+fi
+
+if echo "$HOST" | grep -q web1; then
+  CHSH=$(cat <<EOF
+expect {
+
+  "*➜*" {}
+
+  "*$HOST*" {
+    send "chsh -s /bin/zsh\r"
+    expect -re "Password:.*|密码.*"
+    send "$domain_psw\r"
+    expect "Shell *changed*"
+    send "exit\r"
+    expect "*closed*"
+    send "ssh $HOST\r"
+    expect {
+        "*password*" {
+            send "$domain_psw\r"
+        }
+        "*passphrase*" {
+            send "$domain_psw\r"
+        }
+        "*" {}
+    }
+  }
+}
+EOF
+      )
+fi
+
+expect -c "$(cat <<EOF
+set timeout 50
+
+trap {
+ set rows [stty rows]
+ set cols [stty columns]
+ stty rows \$rows columns \$cols < \$spawn_out(slave,name)
+} WINCH
+
+spawn ssh $USER@$BASTION
+expect "(DomainPassword + 6 characters Token):   "
+send "$domain_psw$token\r"
+expect "$"
+send "ssh $HOST\r"
+expect {
+  "*password*" {
+    send "$domain_psw\r"
+  }
+  "*passphrase*" {
+    send "$domain_psw\r"
+  }
+  "*" {}
+}
+
+$CHSH
+
+$ADMIN
+
+interact {
+  timeout 30 {send "\x20\x7f"}
+}
+EOF
+)"

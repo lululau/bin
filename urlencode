@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require "open-uri"
+while line = gets
+    puts URI::encode(line.chomp)
+end

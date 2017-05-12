@@ -1,0 +1,6 @@
+#!/bin/bash
+
+"$@"
+title=''; for i in "$@"; do title="${title} $i"; done
+title="$(echo -n "$title" | perl -pe 's#\\#\\\\#g;s#"#\\"#g')"
+osascript -e 'display notification "done~" with title "'"$title"'"'

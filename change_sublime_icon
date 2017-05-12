@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ -e /Applications/Sublime\ Text\ 3.app -a ! -e /Applications/Sublime\ Text\ 3.app/Icon$'\r' ]
+then
+  cp /Users/liuxiang/Pictures/icons/sublime.icon /Applications/Sublime\ Text\ 3.app/Icon$'\r'
+  SetFile -a C /Applications/Sublime\ Text\ 3.app/
+  rm /Applications/Sublime\ Text\ 3.app/.DS_Store
+fi

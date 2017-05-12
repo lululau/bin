@@ -1,0 +1,30 @@
+#!/bin/bash
+
+target=$1
+session=${target%:*}
+window=${target#*:}
+client=$(tmux list-clients -t $session | sed 's/:.*//')
+
+cat <<EOF | osascript
+try
+	tell application "iTerm"
+    repeat with idx from 1 to count of tabs of current window
+      set the_tab to item idx of tabs of current window
+      repeat with sess in sessions of the_tab
+        if tty of sess is "$client" then
+         	do shell script "test -e /tmp/iterm2-switch-tab-current.txt && cat /tmp/iterm2-switch-tab-current.txt > /tmp/iterm2-switch-tab-previous.txt; /bin/echo -n " & idx & " > /tmp/iterm2-switch-tab-current.txt"
+
+          select the_tab
+          error "error"
+        end if
+      end repeat
+    end repeat
+	end tell
+on error the_error
+end try
+
+tell application "System Events"
+  keystroke "j" using control down
+  keystroke "$window"
+end tell
+EOF

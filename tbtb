@@ -1,0 +1,11 @@
+#!/usr/bin/expect
+
+set timeout 50
+
+spawn ssh liuxiang.lxiang@login1.cm3.alibaba.org
+expect "(DomainPassword + 6 characters Token):   " 
+send "MYPASSWORD\r"
+
+interact {
+  timeout 30 {send "\x20\x7f"}
+}

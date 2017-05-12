@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ -z "$1" ]
+then
+  if pwd | grep -q -F '/Users/liuxiang/git-umeng/umeng'
+  then
+    (cd ~/git-umeng/main-site-config-umeng/; git branch)
+  elif pwd | grep -q -F '/Users/liuxiang/git-umeng/game'
+  then
+    (cd ~/git-umeng/main-site-config-Game/; git branch)
+  fi
+else
+  if pwd | grep -q -F '/Users/liuxiang/git-umeng/umeng'
+  then
+    (cd ~/git-umeng/main-site-config-umeng/; git co "$1")
+  elif pwd | grep -q -F '/Users/liuxiang/git-umeng/game'
+  then
+    (cd ~/git-umeng/main-site-config-Game/; git co "$1")
+  fi
+fi
+

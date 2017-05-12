@@ -1,0 +1,9 @@
+#!/bin/bash
+
+buffer_file_name=$1
+shift
+global "$@" | ruby -e '
+puts(STDIN.readlines.sort_by do |line|
+  "'"$buffer_file_name"'".end_with?(line[/^.*?(?=:\d+:)/]) ? "" : line
+end)
+'

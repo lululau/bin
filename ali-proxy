@@ -1,0 +1,3 @@
+#!/bin/bash
+
+/Applications/AliMgrForMac.app/Contents/Resources/AliMgrSockAgent -bd 'ewogICAgInNlcnZlciI6IjQ3Ljg4LjEwMy43MCIKfQ==' > /dev/null

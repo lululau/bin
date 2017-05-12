@@ -1,0 +1,1 @@
+/Applications/MyPasteboard.app/Contents/MacOS/MyPasteboard

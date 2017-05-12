@@ -1,0 +1,9 @@
+#!/bin/bash
+
+receiver=$1
+msg=$(cat | sed 's#\\#\\\\#g' | sed 's#"#\\"#g')
+echo "
+tell application \"Messages\"
+    send \"$msg\" to first buddy whose handle is \"$receiver\"
+end tell
+" | osascript -ss

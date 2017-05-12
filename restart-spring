@@ -1,0 +1,6 @@
+#!/bin/bash
+
+/usr/bin/env spring stop
+/usr/bin/env spring rails runner 1
+RAILS_ENV=test /usr/bin/env spring rails runner 1
+/usr/bin/env spring status

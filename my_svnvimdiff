@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# echo vimdiff "$6" "$7"
+
+#vimdiff -M "$6" "$7"
+
+echo "$6"
+echo "$7"
+p4merge "$6" "$7"
+sleep 1

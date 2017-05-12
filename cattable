@@ -1,0 +1,96 @@
+#!/usr/bin/env perl
+
+use strict;
+#use warnings;
+use Getopt::Long;
+use HTML::TableExtract;
+use Encode qw(encode decode);
+
+my ($opt_help, $opt_deli, $opt_table_id, $opt_columns);
+
+GetOptions(
+
+  "h" => \$opt_help,
+  "help" => \$opt_help,
+  "d=s" => \$opt_deli,
+  "table-id=s" => \$opt_table_id,
+  "i=s" => \$opt_table_id,
+  "c=s" => \$opt_columns,
+  "columns=s" => \$opt_columns
+);
+
+my @columns = ();
+
+sub useage {
+  my $useage =<<"EOF";
+
+useage: $0 -d 列分隔符 -i 表格的ID -c 列 <HTML files> 
+
+  本工具是将指定的HTML文件中的表格按照指定的列分隔符按行列格式打印到标准输出.
+
+  如果没有指定列分隔符，则使用\"\\t\"; 如果没有指定输入文件，则从stdin读取输入.
+
+  如果没有指定表格ID，则会解析并打印找到的第一个表格.
+
+EOF
+}
+
+print useage() and exit if $opt_help;
+
+my $delimeter = "\t";
+$delimeter = $opt_deli if $opt_deli;
+$delimeter =~ s/\\t/\t/g;
+$delimeter =~ s/\\n/\n/g;
+
+if(defined($opt_columns)) {
+  for (split /,/, $opt_columns) {
+    if (/^\d+$/) {
+      push @columns, $_;
+    } elsif (/^\d+-\d+$/) {
+      my ($start, $end) = split /-/, $_;
+      for ($start .. $end) {
+        push @columns, $_;
+      }
+    }
+  }
+}
+
+
+my $extractor = HTML::TableExtract->new(
+    # headers => \@headers,
+    # attribs => {id => "myTable"}
+  );
+
+$extractor = HTML::TableExtract->new(
+  attribs => {id => $opt_table_id}
+) if $opt_table_id;
+
+my $html_string = "";
+
+$html_string .= $_ while <>;
+$html_string = decode "utf8", $html_string;
+
+my $status = $extractor->parse($html_string);
+
+eval {
+  for my $row($extractor->rows()) {
+    next unless defined($row);
+    for (@$row) {
+      s#\n##gs;
+      s#^\s*##s;
+      s#\s*$##s;
+    }
+    my $line = "";
+    if (@columns) {
+      $line = join($delimeter, @$row[@columns]);
+    } else {
+      $line = join($delimeter, @$row);
+    }
+    $line = encode "utf8", $line;
+    print $line, "\n";
+  }
+};
+if ($@) {
+  # handle failure...
+  die "no HTML tables found.\n"
+}

@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+
+require 'shellwords'
+
+DEFAULT_SPEC_MATCH_RULES = {
+  /.*/ => ->(file) { file.sub(%r{^[^/]+}, 'spec').sub(/\.(rb|rake)$/, '_spec.rb') }
+}
+
+def get_rspec_files(file)
+  if file.start_with?('spec/')
+    file
+  else
+    SPEC_MATCH_RULES.map do |pattern, modification|
+      if pattern.is_a?(String)
+        next if file != pattern
+      else
+        next if file !~ pattern
+      end
+
+      if modification.is_a?(String)
+        spec = modification
+      else
+        spec = modification.call(file)
+      end
+      next unless File.exist?(spec) && spec != 'spec'
+      spec
+    end
+  end
+end
+
+root_dir = `git rev-parse --show-toplevel`.chomp
+
+Dir.chdir(root_dir)
+
+SPEC_MATCH_RULES = {}
+
+if File.exist?(File.join(root_dir, ".rspec-git"))
+  SPEC_MATCH_RULES.merge!(eval(IO.read(File.join(root_dir, '.rspec-git'))))
+end
+
+if File.exist?(File.expand_path("~/.rspec-git"))
+  SPEC_MATCH_RULES.merge!(eval(IO.read(File.expand_path('~/.rspec-git'))))
+end
+
+SPEC_MATCH_RULES.merge!(DEFAULT_SPEC_MATCH_RULES)
+
+if ARGV[0]
+  spec_files = `git diff-tree --no-commit-id --name-only -r '#{ARGV[0]}'`.lines.map { |e| get_rspec_files(e.chomp) }.flatten.compact.uniq
+else
+  staged_files = `git diff --name-only --cached`.lines.map(&:chomp)
+  unstaged_untracked_files = `git ls-files --modified -o --exclude-standard`.lines.map(&:chomp)
+  spec_files = (staged_files + unstaged_untracked_files).map { |e| get_rspec_files(e) }.flatten.compact.uniq
+end
+
+if spec_files && !spec_files.empty?
+  files_arg = spec_files.map { |e| '"%s"' % Shellwords.escape(e) }.join(' ')
+  puts 'Specs will be run:'
+  spec_files.each { |e| puts '    - %s' % e }
+  puts
+  system <<-"EOF"
+  if bundle show spring > /dev/null; then
+    bundle exec spring rspec #{files_arg}
+  else
+    spring rspec #{files_arg}
+  fi
+  EOF
+end

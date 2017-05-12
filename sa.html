@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Source file</title>
+<style type="text/css">
+body.hl	{ background-color:#ffffff; }
+pre.hl	{ color:#000000; background-color:#ffffff; font-size:11pt; font-family:'Courier';}
+.hl.num { color:#2300ff; }
+.hl.esc { color:#000000; }
+.hl.str { color:#c00000; }
+.hl.pps { color:#733710; }
+.hl.slc { color:#007f1c; }
+.hl.com { color:#007f1c; }
+.hl.ppc { color:#733710; }
+.hl.opt { color:#000000; }
+.hl.ipl { color:#000000; }
+.hl.lin { color:#808080; }
+.hl.kwa { color:#8f0055; }
+.hl.kwb { color:#8f0055; }
+.hl.kwc { color:#8f0055; }
+.hl.kwd { color:#000000; }
+</style>
+</head>
+<body class="hl">
+<pre class="hl"><span class="hl slc">#!/usr/bin/env ruby</span>
+
+require <span class="hl str">&quot;webrick&quot;</span>
+require <span class="hl str">&quot;webrick/httpproxy&quot;</span>
+require <span class="hl str">&quot;date&quot;</span>
+require <span class="hl str">&quot;monitor&quot;</span>
+
+<span class="hl kwa">if</span> <span class="hl opt">[</span><span class="hl str">&quot;-h&quot;</span><span class="hl opt">,</span> <span class="hl str">&quot;--help&quot;</span><span class="hl opt">,</span> <span class="hl str">&quot;-help&quot;</span><span class="hl opt">].</span>include? ARGV<span class="hl opt">[</span><span class="hl num">0</span><span class="hl opt">]</span>
+    puts <span class="hl str">&quot;useage: #{$0} &lt;url-pattern-file&gt; &lt;listen port&gt;&quot;</span>
+    exit <span class="hl num">0</span>
+end
+
+lock <span class="hl opt">=</span> Monitor<span class="hl opt">.</span>new 
+
+ansi_colors <span class="hl opt">= {</span>
+    <span class="hl opt">:</span>red <span class="hl opt">=&gt;</span> <span class="hl num">31</span><span class="hl opt">,</span>
+    <span class="hl opt">:</span>green <span class="hl opt">=&gt;</span> <span class="hl num">32</span>
+<span class="hl opt">}</span>
+
+ansi_colors<span class="hl opt">.</span>each do |color<span class="hl opt">,</span> value|
+    String<span class="hl opt">.</span>module_eval <span class="hl opt">&lt;&lt;</span><span class="hl str">&quot;COLOR_S_METHOD_DEF&quot;</span>
+    <span class="hl kwa">def</span> to_<span class="hl slc">#{color.to_s}_s()</span>
+        <span class="hl str">&quot;</span><span class="hl esc">\033</span><span class="hl str">[#{value}m\#{self.to_s()}</span><span class="hl esc">\033</span><span class="hl str">[0m&quot;</span>
+    end
+COLOR_S_METHOD_DEF
+
+    Kernel<span class="hl opt">.</span>module_eval <span class="hl opt">&lt;&lt;</span><span class="hl str">&quot;COLOR_PUTS_METHOD_DEF&quot;</span>
+    <span class="hl kwa">def</span> <span class="hl slc">#{color.to_s}_puts(str)</span>
+        <span class="hl kwa">if</span> STDOUT<span class="hl opt">.</span>tty?
+            <span class="hl kwd">puts</span><span class="hl opt">(</span><span class="hl kwb">str</span><span class="hl opt">.</span>to_<span class="hl slc">#{color.to_s()}_s())</span>
+        <span class="hl kwa">else</span>
+            <span class="hl kwd">puts</span><span class="hl opt">(</span><span class="hl kwb">str</span><span class="hl opt">)</span>
+        end
+    end
+COLOR_PUTS_METHOD_DEF
+end
+
+<span class="hl kwa">def</span> <span class="hl kwd">log</span><span class="hl opt">(</span><span class="hl kwb">str</span><span class="hl opt">)</span>
+    <span class="hl str">&quot;[#{DateTime.now.strftime(&quot;</span>%F %T<span class="hl str">&quot;)}] #{str}&quot;</span>
+end
+
+url_patterns_file <span class="hl opt">=</span> ARGV<span class="hl opt">[</span><span class="hl num">0</span><span class="hl opt">]</span>
+url_patterns <span class="hl opt">= []</span>
+File<span class="hl opt">.</span><span class="hl kwb">open</span><span class="hl opt">(</span>url_patterns_file<span class="hl opt">,</span> <span class="hl str">&quot;r&quot;</span><span class="hl opt">)</span> do | <span class="hl kwb">file</span> |
+    <span class="hl kwb">file</span><span class="hl opt">.</span>each_line do | line |
+        line<span class="hl opt">.</span>chomp<span class="hl opt">!</span>
+        <span class="hl kwa">if</span> line <span class="hl opt">=</span>~ <span class="hl opt">/</span>^re<span class="hl opt">:/</span>            
+            pattern <span class="hl opt">=</span> line<span class="hl opt">.</span><span class="hl kwd">sub</span><span class="hl opt">(/</span>^re<span class="hl opt">:</span>\s<span class="hl opt">*/,</span> <span class="hl str">&quot;&quot;</span><span class="hl opt">)</span>
+            regexp <span class="hl opt">=</span> Regexp<span class="hl opt">.</span><span class="hl kwd">new</span><span class="hl opt">(</span>pattern<span class="hl opt">)</span>
+            url_patterns <span class="hl opt">&lt;&lt;</span> regexp
+        <span class="hl kwa">else</span>
+            url_patterns <span class="hl opt">&lt;&lt;</span> line
+        end
+    end
+end
+
+<span class="hl kwa">if</span> ARGV<span class="hl opt">[</span><span class="hl num">1</span><span class="hl opt">].</span>to_i <span class="hl opt">&gt;</span> <span class="hl num">0</span>
+    port <span class="hl opt">=</span> ARGV<span class="hl opt">[</span><span class="hl num">1</span><span class="hl opt">].</span>to_i
+<span class="hl kwa">else</span>
+    port <span class="hl opt">=</span> <span class="hl num">7000</span>
+end        
+
+server <span class="hl opt">=</span> WEBrick<span class="hl opt">::</span>HTTPProxyServer<span class="hl opt">.</span><span class="hl kwd">new</span><span class="hl opt">(</span>
+    <span class="hl opt">:</span>Port <span class="hl opt">=&gt;</span> port<span class="hl opt">,</span>
+    <span class="hl opt">:</span>AccessLog <span class="hl opt">=&gt; [],</span>
+    <span class="hl opt">:</span>ProxyContentHandler <span class="hl opt">=&gt;</span> Proc<span class="hl opt">.</span>new do |req<span class="hl opt">,</span> res|
+        req_line <span class="hl opt">=</span> req<span class="hl opt">.</span>request_line
+        url <span class="hl opt">=</span> req_line<span class="hl opt">.</span><span class="hl kwd">sub</span><span class="hl opt">(/</span>^\w<span class="hl opt">+</span>\s<span class="hl opt">/,</span> <span class="hl str">&quot;&quot;</span><span class="hl opt">).</span><span class="hl kwd">sub</span><span class="hl opt">(</span><span class="hl str">&quot;\sHTTP/1\.[01]$&quot;</span><span class="hl opt">,</span> <span class="hl str">&quot;&quot;</span><span class="hl opt">)</span>
+        url_patterns<span class="hl opt">.</span>each do |pattern|            
+            <span class="hl kwa">if</span> pattern<span class="hl opt">.</span>instance_of? String
+                <span class="hl kwa">if not</span> url<span class="hl opt">.</span>include? pattern
+                    next 
+                end
+            elsif pattern<span class="hl opt">.</span>instance_of? Regexp
+                <span class="hl kwa">if not</span> pattern<span class="hl opt">.</span><span class="hl kwd">match</span><span class="hl opt">(</span>url<span class="hl opt">)</span>
+                    next
+                end
+            end
+            lock<span class="hl opt">.</span>synchronize do 
+                puts log req_line
+                red_puts log  <span class="hl str">&quot;    Request Headers: &quot;</span>
+                req<span class="hl opt">.</span>each do | header_name<span class="hl opt">,</span> header_values |
+                    header_values<span class="hl opt">.</span>each do |value|
+                        red_puts log <span class="hl str">&quot;        #{header_name}: #{value}&quot;</span>
+                    end
+                end
+                green_puts log <span class="hl str">&quot;    Response Status &amp; Headers: &quot;</span>
+                green_puts log <span class="hl str">&quot;        #{res.status_line.chomp}&quot;</span>
+                res<span class="hl opt">.</span>each do | header_name<span class="hl opt">,</span> header_values |
+                    header_values<span class="hl opt">.</span>each do |value|
+                        green_puts log <span class="hl str">&quot;        #{header_name}: #{value}&quot;</span>
+                    end
+                end
+                STDOUT<span class="hl opt">.</span>flush
+            end
+            <span class="hl kwa">break</span>
+        end
+    end
+<span class="hl opt">)</span>
+
+trap <span class="hl str">&quot;INT&quot;</span> do 
+    STDOUT<span class="hl opt">.</span>flush
+    server<span class="hl opt">.</span>shutdown 
+end
+server<span class="hl opt">.</span>start
+</pre>
+</body>
+</html>
+<!--HTML generated by highlight 3.14, http://www.andre-simon.de/-->

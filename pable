@@ -1,0 +1,156 @@
+#!/usr/bin/perl
+
+use strict;
+use Encode qw/encode decode/;
+use Getopt::Long;
+
+
+my ($opt_help, $opt_field_number, $opt_columns, $opt_delimeter);
+my (
+
+  # 分隔符     # 需要输出的字段的个数   # 需要输出的字段的序号，从1开始计数
+  $delimeter, $field_number,        @columns
+);
+
+GetOptions(
+  "h" => \$opt_help,
+  "help" => \$opt_help,
+  "d=s" => \$opt_delimeter,
+  "n=i" => \$opt_field_number,
+  "field-number=i" => \$opt_field_number,
+  "c=s" => \$opt_columns,
+  "columns=s" => \$opt_columns
+);
+
+# 返回帮助信息的字符串
+sub useage {
+  return << "EOF";
+$0 [options]
+
+  Options:
+    -h, --help  Print help messages.
+    -d <delimeter> field delimeter, default to white characters.
+    -n, --field-number <n> number of fields, default to the number of fields of the first line.
+    -c, --columns <columns> Specify which fields to print, for example: `-c 1,3-4,7,9' (origin 1).
+
+    You can specify only one option of `-n' and `-c'.
+
+$0 reads data from STDIN and print results to stdout.
+
+EOF
+}
+
+if ($opt_help) {
+
+  # 在多数 UNIX 终端软件中，一个中文字符的显示宽度往往是一个英文字符的两倍
+  # 而经过 GBK 编码的文本中，一个中文字符为两个字节，一个英文字符为单个字节
+  # 因此将本文转换为 GBK 编码后正好可以使字符的字节数和显示宽度相同，便于输出
+  # 的表格的对齐。
+  print STDERR "\033[31mInput file must be utf8 encoded and gbk-encodable.\033[0m\n";
+  print useage();
+  exit(0);
+}
+
+# -n 和 -c 只能指定其中的一个选项
+if ($opt_columns and $opt_field_number) {
+
+  # 在多数 UNIX 终端软件中，一个中文字符的显示宽度往往是一个英文字符的两倍
+  # 而经过 GBK 编码的文本中，一个中文字符为两个字节，一个英文字符为单个字节
+  # 因此将本文转换为 GBK 编码后正好可以使字符的字节数和显示宽度相同，便于输出
+  # 的表格的对齐。
+  print STDERR "\033[31mInput file must be utf8 encoded and gbk-encodable.\033[0m\n";
+  print STDERR useage();
+  exit(1);
+}
+
+# 默认的字段分隔符为空白字符
+unless ($opt_delimeter) {
+  $delimeter = '\s+';  
+} else {
+  (my $d = $opt_delimeter) =~ s#([\\n\\t])#$1#g;
+  $delimeter = $d;
+}
+
+if ($opt_columns) {
+  for (split /,/, $opt_columns) {
+    if (/^\d+$/) {
+      push @columns, $_;
+    } elsif (/^\d+-\d+$/) {
+      my ($start, $end) = split /-/, $_;
+      for ($start .. $end) {
+        push @columns, $_;
+      }
+    }
+  }
+} elsif ($opt_field_number) {
+  $field_number = $opt_field_number;
+} else {
+  $field_number = -1;
+}
+
+my @lines = ();
+
+while (my $line = <STDIN> ) {
+
+  # 去除行尾换行符
+  chomp $line;
+
+  # 分割行
+  my @fields = map { s#\n#\\n#g; s#\t#\\t#g; "" . encode("gbk", decode("utf8", $_))} (split /$delimeter/, $line);
+
+  # 如果未指定 -c 和 -n 选项，则将 默认输出的字段数设置为第一行的行数
+  $field_number = @fields if $field_number == -1;
+  push @lines, [@fields];
+}
+
+@columns = (1 .. $field_number) unless $opt_columns;
+
+# 求得各行中各字段的最大宽度
+my @max_length = ();
+for my $i(@columns) {
+  my $max = 0;
+  for (@lines) {
+    my $len = length $_->[$i - 1];
+    $max = $len if $len > $max;
+  }
+  $max_length[$i] = $max;
+}
+
+# 打印表头上面的: +-------+--------+-----+
+for (@columns) {
+  print "+" . "-" x ($max_length[$_] + 2) if defined $max_length[$_];
+}
+print "+\n";
+
+# 打印表头
+for my $i(@columns) {
+  my $field = $lines[0]->[$i - 1];
+  my $length = length $field;  
+  my $field = encode("utf8", decode("gbk", $field));
+  print "| " . $field . " " x ($max_length[$i] - $length + 1);
+}
+print "|\n";
+
+# 打印表头下面的: +-------+--------+-----+
+for (@columns) {
+  print "+" . "-" x ($max_length[$_] + 2) if defined $max_length[$_];
+}
+print "+\n";
+
+# 打印表格体
+for my $i(2 .. @lines) {
+  my $fields = $lines[$i - 1];
+  for my $j(@columns) {
+    my $field = $fields->[$j - 1];
+    my $length = length $field;  
+    my $field = encode("utf8", decode("gbk", $field));
+    print "| " . $field . " " x ($max_length[$j] - $length + 1);
+  }
+  print "|\n";
+}
+
+# 打印表格体下面的那行: +-------+--------+-----+
+for (@columns) {
+  print "+" . "-" x ($max_length[$_] + 2) if defined $max_length[$_];
+}
+print "+\n";

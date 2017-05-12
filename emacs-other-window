@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ $# -ge 2 ]; then
+    line=$[$1 - 1]
+    file=$2
+else
+    line=0
+    file=$1
+fi
+
+emacsclient --eval "(other-window 1)" &> /dev/null
+emacsclient "$@"

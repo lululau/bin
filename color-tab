@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby 
+
+if $0 == __FILE__
+  i = 0
+  ARGF.each do |line|
+    print line.gsub(/([^\t]*)\t/) {
+      i += 1
+      "#{$1}\033[30;4#{i%2+1}m\u27AA#{" " * (7-$1.size%8)}\033[0m"
+    }
+  end
+end

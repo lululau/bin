@@ -1,0 +1,28 @@
+#!/bin/bash
+
+USERNAME=liuxiang
+HOSTNAME=s13.99ssh.com
+
+OS=$(uname)
+if [[ "$OS" == Linux ]]
+then
+    PS_OPTS="-ef"
+elif [[ "$OS" == Darwin ]]
+then
+    PS_OPTS="-A"
+fi
+
+if ps $PS_OPTS | grep 'ssh -fND 5000' | grep -q -v 'grep'
+then
+:
+else
+    cat <<EOF | expect
+set timeout 60
+spawn ssh -fND 5000 liuxiang@s13.99ssh.com
+expect -re ".*password.*"
+send "MYPASSWORD\n"
+expect eof
+exit
+EOF
+#ssh -fND 5000 "${USERNAME}@${HOSTNAME}"
+fi

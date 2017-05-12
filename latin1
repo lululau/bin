@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+
+use Encode qw/encode decode/;
+
+binmode(STDOUT, ":encoding(UTF-8)");
+
+print "Dec Oct Hex    \t" x 8, "\n";
+print "================" x 8, "\n";
+
+for my $row (0 .. 15) {
+  
+  for my $field (0 .. 7) {
+    my $code_number = 128 + $field + $row*8;
+    my $char = pack("c*", $code_number);
+    my $unicode_char = decode("LATIN1", $char);
+    printf "%d %o %X %s\t", $code_number, $code_number, $code_number, $unicode_char;
+  }
+
+  print "\n";
+}
+

@@ -1,0 +1,25 @@
+#!/bin/zsh
+
+typeset -A tab_project_map
+
+# `tab_project_map' is an associative-array
+#   Key:   iTerm2 tab index (count from one)
+#   Value: tmuxinator project name
+tab_project_map=(
+    4 fame
+    5 baton
+    6 notab
+    7 cmd
+)
+
+for k in "${(@k)tab_project_map}"
+do
+    v=$tab_project_map[$k]
+    cat <<EOF | osascript -ss
+        tell app "iTerm"
+             tell current session of item $k of tabs of current window
+                  write text "tmuxinator start $v"
+             end tell
+        end tell
+EOF
+done

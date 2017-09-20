@@ -18,7 +18,7 @@ do
     cat <<EOF | osascript -ss
         tell app "iTerm"
              tell current session of item $k of tabs of current window
-                  write text "tmuxinator start $v"
+                  write text "{ tmux list-sessions | cut -d: -f1 | grep -q $v; } && tmux attach -t $v || tmuxinator start $v"
              end tell
         end tell
 EOF

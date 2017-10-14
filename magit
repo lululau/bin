@@ -1,0 +1,12 @@
+#!/bin/zsh
+
+if [ ! -d .git ]; then
+   echo Not a git repository.
+   exit 1
+fi
+
+if [ "$(uname)" = Darwin ]; then
+    emacsclient -t -s term -e "(let ((magit-display-buffer-function #'(lambda (buffer) (display-buffer buffer '(display-buffer-same-window))))) (magit-status \"$PWD\"))"
+else
+    emacsclient -t -e "(let ((magit-display-buffer-function #'(lambda (buffer) (display-buffer buffer '(display-buffer-same-window))))) (magit-status \"$PWD\"))"
+fi

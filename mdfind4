@@ -303,7 +303,7 @@ opt.on('', '--prop-ge arg_value', 'e.g. --prop-ge FSSize@diary.txt
 }
 
 opt.on('-d url', '--downloadfrom url', "搜索从URL下载的文件"){ |url|
-  predicates << "kMDItemWhereFroms == \"%s\"cdw" % "*#{escape(url)}*" # 曖昧指定
+  predicates << "kMDItemWhereFroms == \"%s\"" % "*#{escape(url)}*" # 曖昧指定
 }
 
 opt.on('-n name', '--name name', "按文件名称搜索, 自动支持模糊匹配, 无需指定通配符"){ |name|

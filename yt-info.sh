@@ -1,6 +1,6 @@
 #!/bin/bash
 
-hostname='www.yuntiprivaten.com'
+hostname='www.yuntimacos.com'
 session_name=www_yuntiprivaten_com
 
 function sign_in() {

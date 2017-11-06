@@ -1,0 +1,51 @@
+#!/usr/bin/env zsh
+
+if [ "$#" -eq 1 ]; then
+    cmd=$1
+    sessions=$(tmux list-sessions -F '#S')
+    sessions=(${(f)sessions})
+elif [ "$#" -eq 2 ]; then
+    cmd=$2
+    if [[ "${1[1]}" != ':' && "${1[1]}" != '.' ]]; then
+        sessions=(${1%%:*})
+        if [[ "$1" = *:* ]]; then
+            window=${1##*:}
+        fi
+    elif [[ "$1" = :* ]]; then
+        sessions=('')
+        window=${1#:}
+    elif [[ "$1" = .* ]]; then
+        sessions=('')
+        window=''
+        pane=${1#.}
+    fi
+else
+    echo 'Usage:'
+    cat <<EOF
+session_name
+session_name:window_index
+:window_index
+.pane_index
+EOF
+    exit 1
+fi
+
+for session in "${sessions[@]}"; do
+    if [ ${+window} -eq 1 ]; then
+        if [ ${+pane} -eq 1 ]; then
+            tmux send-keys -t ".$pane" "$cmd"
+        else
+            for pane in $(tmux list-panes -t "$session:$window" -F '#P'); do
+                tmux send-keys -t "$session:$window.$pane" "$cmd"
+            done
+        fi
+    else
+        for window in $(tmux list-windows -t $session -F '#I'); do
+            for pane in $(tmux list-panes -t "$session:$window" -F '#P'); do
+                tmux send-keys -t "$session:$window.$pane" "$cmd"
+            done
+            unset pane
+        done
+        unset window
+    fi
+done

@@ -1,0 +1,7 @@
+#!/bin/zsh
+
+if bundle list spring &> /dev/null; then
+  bundle exec spring server
+else
+  =spring server
+fi

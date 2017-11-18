@@ -1,5 +1,13 @@
 #!/bin/zsh
 
+local session_names=(faith baton notab cmd)
+
+for i in {1..30}; do
+    local started_sessions=($(tmux list-sessions -F '#S' 2>/dev/null))
+    [ -z ${session_names:|started_sessions} ] && break
+    sleep 1
+done
+
 start-commands() {
     tmux send-keys -t faith:1.1 $'sru 1; sstatus; rs -b 0.0.0.0 -p 4000\n' # faith rails
     tmux send-keys -t faith:2.1 $'sru 1; sstatus; rs -p 4001\n'            # fake_rsql rails

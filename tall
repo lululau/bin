@@ -12,13 +12,25 @@ tab_project_map=(
     7 cmd
 )
 
+# for k in "${(@k)tab_project_map}"
+# do
+#     v=$tab_project_map[$k]
+#     cat <<EOF | osascript -ss
+#         tell app "iTerm"
+#              tell current session of item $k of tabs of current window
+#                   write text "{ tmux list-sessions | cut -d: -f1 | grep -q $v; } && tmux attach -t $v || tmuxinator start $v"
+#              end tell
+#         end tell
+# EOF
+# done
+
 for k in "${(@k)tab_project_map}"
 do
     v=$tab_project_map[$k]
     cat <<EOF | osascript -ss
         tell app "iTerm"
              tell current session of item $k of tabs of current window
-                  write text "{ tmux list-sessions | cut -d: -f1 | grep -q $v; } && tmux attach -t $v || tmuxinator start $v"
+                  write text "{ tmux list-sessions -F '#S' | grep -q $v; } && [ -z \$TMUX ] && tmux attach -t $v"
              end tell
         end tell
 EOF

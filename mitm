@@ -1,0 +1,25 @@
+#!/bin/zsh
+
+MITM_PORT=8080
+getopts 'p:' opt
+[ -n "$OPTARG" ] && MITM_PORT=$OPTARG
+
+SERVICE_GUID=$(printf "open\nget State:/Network/Global/IPv4\nd.show" | scutil | grep "PrimaryService" | awk '{print $3}')
+SERVICE_NAME=$(printf "open\nget Setup:/Network/Service/$SERVICE_GUID\nd.show" | scutil | grep "UserDefinedName" | awk -F': ' '{print $2}')
+
+if networksetup -getautoproxyurl "$SERVICE_NAME" | grep -q 'Enabled: Yes'; then
+  AUTO_PROXY_URL=$(networksetup -getautoproxyurl "$SERVICE_NAME" | grep 'URL' | cut -d' ' -f2)
+  networksetup -setAutoProxystate "$SERVICE_NAME" off
+fi
+
+networksetup -setwebproxy "$SERVICE_NAME" localhost "$MITM_PORT"
+networksetup -setsecurewebproxy "$SERVICE_NAME" localhost "$MITM_PORT"
+
+mitmproxy "$@"
+
+networksetup -setwebproxystate "$SERVICE_NAME" off
+networksetup -setsecurewebproxystate "$SERVICE_NAME" off
+
+if [ -n "$AUTO_PROXY_URL" ]; then
+  networksetup -setAutoProxyurl "$SERVICE_NAME" "$AUTO_PROXY_URL"
+fi

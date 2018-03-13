@@ -5,7 +5,7 @@ require 'json'
 # Substitute prefix dirs with local baton project root dir or pwd, so that if
 # you use this script in iTerm2, you could command-click the full pathname to
 # open the file in your favorite editor.
-LOCAL_BATON_PROJECT_ROOT = ENV['LOCAL_BATON_PROJECT_ROOT'] || Dir.pwd
+LOCAL_RAILS_PROJECT_ROOT = ENV['LOCAL_RAILS_PROJECT_ROOT'] || Dir.pwd
 
 GEM_DIR = `rvm gemdir`.chomp
 GEM_BIN_DIR = GEM_DIR.sub(/gems/, 'rubies')
@@ -18,7 +18,7 @@ raw_err_text = STDIN.isatty ? `pbpaste` : STDIN.read
 backtraces_text = raw_err_text[/\[[^\[\]]*\].*$/m].gsub(/\n/, '')
 
 JSON.parse(backtraces_text).each do |trace|
-  if trace =~ %r<^/home/deploy/(\.rvm/.*)>
+  if trace =~ %r<^/home/[^/]+/(\.rvm/.*)>
     # Replace with your own home dir.
     puts "#{Dir.home}/#{$1}"
   elsif trace =~ %r<.*/releases/\d+/vendor/.*/(gems/.*)>
@@ -27,7 +27,7 @@ JSON.parse(backtraces_text).each do |trace|
     puts "#{GEM_BIN_DIR}/#{$1}"
   elsif trace =~ %r<.*/releases/\d+/(.*)>
     # Highlight paths under baton code base.
-    puts STDOUT.isatty ? "\033[33m#{LOCAL_BATON_PROJECT_ROOT}/#{$1}\033[0m" : "#{LOCAL_BATON_PROJECT_ROOT}/#{$1}"
+    puts STDOUT.isatty ? "\033[33m#{LOCAL_RAILS_PROJECT_ROOT}/#{$1}\033[0m" : "#{LOCAL_RAILS_PROJECT_ROOT}/#{$1}"
   else
     puts trace
   end

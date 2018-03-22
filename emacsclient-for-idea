@@ -5,4 +5,5 @@ if echo "$file_path" | grep -qF 'src.zip!'; then
     file_path=/Users/liuxiang/cascode/java/java-sources$(echo "$file_path" | perl -pe 's#.*src\.zip!##')
 fi
 
+emacsclient -q --eval "(spacemacs/persp-switch-to-1)" &> /dev/null
 /usr/local/bin/emacsclient -n "$file_path"

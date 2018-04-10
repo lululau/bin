@@ -9,10 +9,10 @@ for i in {1..30}; do
 done
 
 start-commands() {
-    tmux send-keys -t faith:1.1 $'sru 1; sstatus; rs -b 0.0.0.0 -p 4000\n' # faith rails
-    tmux send-keys -t faith:2.1 $'sru 1; sstatus; rs -p 4001\n'            # fake_rsql rails
-    tmux send-keys -t baton:1.1 $'Sru 1; Sstatus\n'                        # baton rails
-    tmux send-keys -t notab:1.1 $'Sru 1; Sstatus; rs\n'                    # notab rails
+    # tmux send-keys -t faith:1.1 $'sru 1; sstatus; rs -b 0.0.0.0 -p 4000\n' # faith rails
+    # tmux send-keys -t faith:2.1 $'sru 1; sstatus; rs -p 4001\n'            # fake_rsql rails
+    # tmux send-keys -t baton:1.1 $'Sru 1; Sstatus\n'                        # baton rails
+    tmux send-keys -t notab:1.1 $'sru 1; sstatus; rs\n'                    # notab rails
 }
 
 # ~/.tmux/plugins/tmux-resurrect/scripts/restore.sh

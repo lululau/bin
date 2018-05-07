@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-local session_names=(faith baton notab cmd)
+local session_names=(Java faith baton notab cmd)
 
 for i in {1..30}; do
     local started_sessions=($(tmux list-sessions -F '#S' 2>/dev/null))

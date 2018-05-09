@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if [ "$(uname)" = Darwin ]; then
+    if [ -n "$1" ]; then
+      typeset -a files=()
+      for arg in "$@"; do
+          files+=("/sudo:root@localhost:$(cd $(dirname $arg); echo "$(pwd)/$(basename $arg)")")
+      done
+      emacsclient -t -s term "${files[@]}"
+    else
+        emacsclient -t -s term  "/sudo:root@localhost:$PWD"
+    fi
+else
+    if [ -n "$1" ]; then
+      typeset -a files=()
+      for arg in "$@"; do
+          files+=("/sudo:root@localhost:$(cd $(dirname $arg); echo "$(pwd)/$(basename $arg)")")
+      done
+      emacsclient -t "${files[@]}"
+    else
+        emacsclient -ta  "/sudo:root@localhost:$PWD"
+    fi
+fi

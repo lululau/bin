@@ -1,0 +1,17 @@
+#!/bin/bash
+
+emacsclient -q --eval "(spacemacs/persp-switch-to-1)" &> /dev/null
+
+if [ -n "$EMACS" ]; then
+    emacsclient -q --eval "(other-window 1)" &> /dev/null
+fi
+
+if [ -n "$1" ]; then
+    typeset -a files=()
+    for arg in "$@"; do
+        files+=("/sudo:root@localhost:$(cd $(dirname $arg); echo "$(pwd)/$(basename $arg)")")
+    done
+    emacsclient -n "${files[@]}"
+else
+    emacsclient -n "/sudo:root@localhost:$PWD"
+fi

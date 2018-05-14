@@ -6,12 +6,18 @@ if [ -n "$EMACS" ]; then
     emacsclient -q --eval "(other-window 1)" &> /dev/null
 fi
 
+if [ $(uname) = Darwin ]; then
+  OPTS='-n'
+else
+  OPTS='-t'
+fi
+
 if [ -n "$1" ]; then
     typeset -a files=()
     for arg in "$@"; do
         files+=("/sudo:root@localhost:$(cd $(dirname $arg); echo "$(pwd)/$(basename $arg)")")
     done
-    emacsclient -n "${files[@]}"
+    emacsclient "$OPTS" "${files[@]}"
 else
-    emacsclient -n "/sudo:root@localhost:$PWD"
+    emacsclient "$OPTS" "/sudo:root@localhost:$PWD"
 fi

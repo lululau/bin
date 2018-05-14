@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env zsh
 
 if ! git status &> /dev/null; then
    echo Not a git repository.

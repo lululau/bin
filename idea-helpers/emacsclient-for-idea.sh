@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env zsh
 
 script_dir=$(cd $(dirname $0); pwd)
 source "$script_dir/project-root.sh"

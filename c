@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env zsh
 
 if [ -n "$TMUX" ]; then
   capture_cmd='tmux capture-pane -pS -'

@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env zsh
 
 if bundle list spring &> /dev/null; then
   bundle exec spring server

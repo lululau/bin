@@ -1,9 +1,14 @@
 #!/bin/bash
 
-url="http://$(ifconfig en0 | ag '(?<=inet )\S+' -o):${1:-8080}/"
-echo "$url" | pbcopy
-echo "URL copied to clipboard: $url"
+ip_url="http://$(ifconfig en0 | ag '(?<=inet )\S+' -o):${1:-8080}/"
+bonjour_hostname_url="http://$(scutil --get LocalHostName | perl -pe '$_=lc').local:${1:-8080}/"
+echo "$ip_url" | pbcopy
+echo "URL copied to clipboard: $ip_url"
+echo
+echo "URL with Bonjour HostName: $bonjour_hostname_url"
 echo '---------------------------------------'
 echo
-python -m SimpleHTTPServer ${1:-8080}
+# python -m SimpleHTTPServer ${1:-8080}
 # ruby -run -e httpd . -p ${1:-8080}
+
+webfsd -F -l- -p ${1:-8080}

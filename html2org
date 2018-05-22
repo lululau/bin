@@ -1,0 +1,15 @@
+#!/usr/bin/env zsh
+
+title=$1
+[ -n "$title" ] && decoded_title=$(ruby -ropen-uri -e "puts URI::decode_www_form_component('$title')")
+[ -n "$title" ] && date=$(date '+%F')
+link=$2
+[ -n "$link" ] && include_before=$(ruby -ropen-uri -e "puts 'LINK: ' + URI::decode_www_form_component('$link')")
+
+filter() {
+  perl -pe '
+    s/\[\[[^\[\]]*\]\[\]\]//g;
+  '
+}
+
+pandoc -s -f html -t org -M title="$decoded_title" -M date="$date" -M include-before="$include_before" --wrap=none | filter

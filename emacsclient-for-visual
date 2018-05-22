@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ "$(uname)" = Darwin ]; then
+  emacsclient -s term -t "$@"
+else
+  emacsclient -t "$@"
+fi

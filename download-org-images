@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+
+require 'open-uri'
+require 'fileutils'
+
+IMAGE_EXT_NAMES = %w[png jpg jpeg gif webp tiff svg]
+IMAGE_EXT_PATTERN = /\\.#{IMAGE_EXT_NAMES.join("|")}$/i
+IMAGE_PATH_PATTERN = /(?<=\[)https?:\/\/[^\]]*(?:#{IMAGE_EXT_NAMES.join("|")})(?=\])/
+
+BUFFER_FILE_NAME = ARGV[0]
+
+ORG_DIRECTORY = File.dirname(BUFFER_FILE_NAME)
+
+ORG_BASENAME = File.basename(BUFFER_FILE_NAME).sub(/\.org$/, '')
+
+Dir.chdir(ORG_DIRECTORY)
+
+def get_image_links(text)
+  text.scan(IMAGE_PATH_PATTERN)
+end
+
+def append_image_ext_name(basename)
+  if basename =~ IMAGE_EXT_PATTERN
+    basename += '.jpg'
+  end
+  return basename
+end
+
+def download_image(link)
+  local_image_file = link.sub(/.*\//, '')
+  local_image_file = append_image_ext_name(local_image_file)
+  FileUtils.mkdir_p('./%s/assets' % ORG_BASENAME)
+  save_file = './%s/assets/%s' % [ORG_BASENAME, local_image_file]
+  OpenURI.open_uri(link) do |resp_io|
+    File.open(save_file, 'w') do |f|
+      f.write(resp_io.read)
+    end
+  end
+  save_file
+end
+
+STDIN.each_line do |line|
+  line.chomp!
+
+  get_image_links(line).each do |link|
+    local_image_path = download_image(link)
+    line.sub!(/#{link}/, local_image_path)
+  end
+
+  puts line
+end

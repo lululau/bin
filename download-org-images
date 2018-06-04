@@ -2,10 +2,14 @@
 
 require 'open-uri'
 require 'fileutils'
+require 'securerandom'
 
 IMAGE_EXT_NAMES = %w[png jpg jpeg gif webp tiff svg]
 IMAGE_EXT_PATTERN = /\\.#{IMAGE_EXT_NAMES.join("|")}$/i
-IMAGE_PATH_PATTERN = /(?<=\[)https?:\/\/[^\]]*(?:#{IMAGE_EXT_NAMES.join("|")})(?=\])/
+IMAGE_PATH_PATTERNS = [
+                       /(?<=\[)https?:\/\/[^\]]*(?:#{IMAGE_EXT_NAMES.join("|")})(?=\])/,
+                       /(?<=\[)https?:\/\/img-blog\.csdn[^\]]*(?=\])/,
+                      ]
 
 BUFFER_FILE_NAME = ARGV[0]
 
@@ -16,12 +20,14 @@ ORG_BASENAME = File.basename(BUFFER_FILE_NAME).sub(/\.org$/, '')
 Dir.chdir(ORG_DIRECTORY)
 
 def get_image_links(text)
-  text.scan(IMAGE_PATH_PATTERN)
+  IMAGE_PATH_PATTERNS.reduce([]) do |result, pattern|
+    result + text.scan(pattern)
+  end
 end
 
 def append_image_ext_name(basename)
-  if basename =~ IMAGE_EXT_PATTERN
-    basename += '.jpg'
+  if basename !~ IMAGE_EXT_PATTERN
+    basename = "#{SecureRandom.uuid}.jpg"
   end
   return basename
 end
@@ -44,7 +50,7 @@ STDIN.each_line do |line|
 
   get_image_links(line).each do |link|
     local_image_path = download_image(link)
-    line.sub!(/#{link}/, local_image_path)
+    line.sub!(link, local_image_path)
   end
 
   puts line

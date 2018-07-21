@@ -1,0 +1,3 @@
+#!/bin/bash
+
+http https://api.day.app/$BARK_TOKEN/$1

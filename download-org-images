@@ -8,7 +8,7 @@ IMAGE_EXT_NAMES = %w[png jpg jpeg gif webp tiff svg]
 IMAGE_EXT_PATTERN = /\\.#{IMAGE_EXT_NAMES.join("|")}$/i
 IMAGE_PATH_PATTERNS = [
                        /(?<=\[)https?:\/\/[^\]]*(?:#{IMAGE_EXT_NAMES.join("|")})(?=\])/,
-                       /(?<=\[)https?:\/\/img\.blog\.csdn[^\]]*(?=\])/,
+                       /(?<=\[)https?:\/\/img.blog\.csdn[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/upload-images\.jianshu\.io[^\]]*(?=\])/
                       ]
 

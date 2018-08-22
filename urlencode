@@ -2,5 +2,5 @@
 
 require "open-uri"
 while line = gets
-    puts URI::encode(line.chomp)
+    puts URI::encode_www_form_component(line.chomp)
 end

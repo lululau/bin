@@ -1,0 +1,3 @@
+#!/usr/bin/env zsh
+
+find /usr/local/Cellar -name 'homebrew.mxcl.*.plist' -exec cp {} ~/.config/services/ \;

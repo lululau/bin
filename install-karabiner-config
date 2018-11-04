@@ -1,0 +1,8 @@
+#!/usr/bin/env zsh
+
+file=$1
+basename=$(basename "$file")
+dirname=$(cd "$(dirname "$file")"; pwd)
+filename="$dirname/$basename"
+url="file://$filename"
+open "karabiner://karabiner/assets/complex_modifications/import?url=$url"

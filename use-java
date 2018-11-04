@@ -4,6 +4,8 @@ if [ "$1" = 9 -o "$1" = 1.9 ]; then
    ln -nfs /Library/Java/JavaVirtualMachines/jdk*9*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
 elif [ "$1" = 10 -o "$1" = 1.10 ]; then
      ln -nfs /Library/Java/JavaVirtualMachines/jdk*10*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
+elif [ "$1" = 11 -o "$1" = 1.11 ]; then
+  ln -nfs /Library/Java/JavaVirtualMachines/jdk*11*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
 elif [ "$1" = 8 -o "$1" = 1.8 ]; then
    ln -nfs /Library/Java/JavaVirtualMachines/jdk*1.8*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
 fi

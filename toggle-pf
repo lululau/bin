@@ -2,6 +2,7 @@
 
 result=$(pfctl -d 2>&1)
 if echo $result | grep -q 'pf not enabled'; then
+  sysctl -w net.inet.ip.forwarding=1
   if [ "$1" = all ]; then
     pfctl -e -f ~/.config/.mitmproxy.pf.conf
     echo '\npf  ~/.config/.mitmproxy.pf.conf enabled.'

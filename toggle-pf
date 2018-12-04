@@ -1,0 +1,14 @@
+#!/usr/bin/env zsh
+
+result=$(pfctl -d 2>&1)
+if echo $result | grep -q 'pf not enabled'; then
+  if [ "$1" = all ]; then
+    pfctl -e -f ~/.config/.mitmproxy.pf.conf
+    echo '\npf  ~/.config/.mitmproxy.pf.conf enabled.'
+  else
+    pfctl -e -f ~/.config/.mitmproxy.en0.pf.conf
+    echo '\npf ~/.config/.mitmproxy.en0.pf.conf enabled.'
+  fi
+else
+  echo 'pf disabled.'
+fi

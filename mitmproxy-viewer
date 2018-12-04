@@ -1,0 +1,10 @@
+#!/usr/bin/env zsh
+
+file_type=$(file "$1")
+if echo "$file_type" | grep -q 'image\|video\|audio'; then
+  qlmanage -p "$1" &> /dev/null
+else
+  # vim "$1"
+  clear
+  bat --pager='less --RAW-CONTROL-CHARS --no-init -R' "$1"
+fi

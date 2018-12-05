@@ -2,8 +2,10 @@
 
 if [ -z "$1" ]; then exit 1; fi
 
+# 跳板机地址
 BASTION=login1.et2.alibaba.org
 
+# 脚本第一个参数是目标机，形式是： `地址' 或 `用户名@地址'
 if echo "$1" | grep -q 'admin@'; then
   ADMIN=true
   HOST=${1##*@}
@@ -11,14 +13,21 @@ else
   HOST=$1
 fi
 
+# 从 macOS KeyChain.app 中读取跳板机用户名，也可以写死在脚本里
 USER=$(security find-generic-password -s alibaba-domain-password  | perl -ne 'print if s#.*"acct"<blob>="(.*?)"#$1#')
 if echo "$HOST" | grep -q -v '\.et2$'; then
     HOST="$HOST.umeng.com.et2"
 fi
 
+
+# 从 macOS KeyChain.app 中读取目标机器密码，也可以写死在脚本里
 domain_psw=$(security find-generic-password -ws alibaba-domain-password)
-server_psw=$(security find-generic-password -ws alibaba-servers-password)
+
+# 这个好像没用了
+# server_psw=$(security find-generic-password -ws alibaba-servers-password)
 shift
+
+# token 是阿里郎的那个6位 token
 if [ -n "$1" ]; then
   token=$1
 else
@@ -36,6 +45,7 @@ EOF
        )
 fi
 
+# 这段是判断如果主机是 web1 就将当前用户的默认 Shell 改为 zsh，可以去掉
 if echo "$HOST" | grep -q web1; then
   CHSH=$(cat <<EOF
 expect {

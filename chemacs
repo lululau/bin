@@ -1,0 +1,29 @@
+#!/usr/bin/env zsh
+
+print_current_profile() {
+  echo 'cat ~/.emacs-profile'
+  echo '--------------------'
+  cat ~/.emacs-profile
+}
+
+print_all_profiles() {
+  echo 'cat ~/.emacs-profiles.el'
+  echo '------------------------'
+  cat ~/.emacs-profiles.el
+}
+
+list_profiles() {
+  print_current_profile
+  echo
+  print_all_profiles
+}
+
+use_profile() {
+  echo "$1" > ~/.emacs-profile
+}
+
+if [[ $# == 0 || $1 == list || $1 == ls ]] {
+     list_profiles
+} elif [[ "$1" == use ]] {
+     use_profile "$2"
+}

@@ -1,1 +1,1 @@
-/Users/liuxiang/bin/idea-helpers/project-root.sh
+idea-helpers/project-root.sh

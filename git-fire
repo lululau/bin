@@ -1,0 +1,21 @@
+#!/usr/bin/env zsh
+
+script_dir=$(cd $(dirname $0); pwd)
+source "$script_dir/project-root.sh"
+cd "$(project_root)"
+
+git add .
+
+git commit -m "GIT ON FIRE: $(date '+%F %T')"
+
+if [[ "$?" == 0 ]] {
+     echo "Saved Commit: "
+     echo '=================='
+     echo
+
+     git log -1
+
+     echo
+
+     git reset --hard 'HEAD^'
+}

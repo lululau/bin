@@ -1,0 +1,1 @@
+/Users/liuxiang/bin/idea-helpers/project-root.sh

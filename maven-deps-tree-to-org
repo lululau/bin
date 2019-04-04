@@ -1,0 +1,23 @@
+#!/usr/bin/env zsh
+
+temp_file=/tmp/maven-deps-tree.$(basename $PWD).$(uuidgen).org
+
+mvn dependency:tree | sed -n '/ --- maven-dependency-plugin:/,/ -----/s/^\[INFO\] //p' | sed -n '1!p' | sed -n '$!p' | perl -pe 's/([\\|+ -]{3})/*/g;s/^\**/*$& /' > $temp_file &
+
+pid=$!
+
+echo -n 'Waiting for resolve dependencies'
+
+while true; do
+  if lsof -p $! &> /dev/null; then
+    echo -n '.'
+    sleep 1
+  else
+    echo
+    break
+  fi
+done
+
+x $temp_file
+
+rm $temp_file

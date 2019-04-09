@@ -1088,7 +1088,7 @@ KIND_MAP = {
   'rake' => 'Ruby',
   'rar' => 'RAR archive',
   'raw' => 'Panasonic raw image',
-  'rb' => '纯文本文稿',
+  'rb' => 'Ruby Source',
   'rc' => '文稿',
   'rcache' => '文稿',
   'rdoc' => '文稿',
@@ -1498,10 +1498,10 @@ Spotlight 是 OS X 上非常好用的一个桌面搜索工具，mdfind 是Spotli
 
 mdfind3: https://gist.github.com/4086771
 
-usage: mdfind4 [options]
+usage: mdfind4 [options] [search dir]
 
   通过指定若干选项来搜索文件系统中被 Spotlight 索引的文件，每个选项之间是逻辑与的关系. 默认将
-  搜索文件系统中所有的被索引文件，可以通过 "-o" 选项来约束其只在某个目录中进行搜索.
+  搜索文件系统中所有的被索引文件，可以通过最后一个参数来约束其只在某个目录中进行搜索.
 
   % mdfind4 --content-type com.omnigroup.omnigraffle.graffle --from 2011/11/1 -t '2013-01-01 14:30:24'
   % mdfind4 --query '关键字' --content-type 'com.adobe.pdf'
@@ -1689,13 +1689,6 @@ opt.on('', '--count', "Causes the mdfind command to output the total number of
   count = true
 end
 
-opt.on('-o dir', '--onlyin dir', "mdfind4默认搜索文件系统中所有的被索引文件，通过本选项
-  #{' ' * 35}来约束其只在某个目录中进行搜索.
-  ") do |dir|
-  dir = File.expand_path dir unless dir =~ /^\//
-  scope = escape dir
-end
-
 opt.on('', '--debug', "mdfind4 通过调用 OS X 系统自带的 mdfind 命令来完成文件搜索，指定
   #{' ' * 35}本选项之后, 可以看到 mdfind4 实际调用的命令的参数
   ") do
@@ -1708,6 +1701,13 @@ if ARGV.empty?
 end
 
 opt.parse!(ARGV)
+
+if ARGV.size == 1
+  dir = ARGV.first
+  dir = File.expand_path dir unless dir =~ /^\//
+  scope = escape dir
+end
+
 query_string = predicates.join(' && ')
 
 cmd = "mdfind #{scope ? "-onlyin '#{scope}'" : ''} \

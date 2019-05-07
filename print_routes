@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+
+my $matched = 0;
+my $over = 0;
+
+while (<>) {
+    $matched = 1 if /JsonResponseRequestMappingHandlerMapping - /;
+    $over = 1 if $_ !~ /JsonResponseRequestMappingHandlerMapping - / && $matched;
+
+    last if $over;
+    if ($matched) {
+      s/^.*JsonResponseRequestMappingHandlerMapping - //;
+      s/([a-z0-9]+\.)+([A-Z])/$2/g;
+      s/onto public/ ====> /;
+      print if /^Mapped/;
+    }
+}

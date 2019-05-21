@@ -9,6 +9,7 @@ tab_project_map=(
     5 Java
     6 notab
     7 cmd
+    8 repl
 )
 
 # for k in "${(@k)tab_project_map}"

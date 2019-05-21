@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-local session_names=(Java faith baton notab cmd)
+local session_names=(Java faith baton notab cmd repl)
 
 for i in {1..30}; do
     local started_sessions=($(tmux list-sessions -F '#S' 2>/dev/null))
@@ -13,6 +13,9 @@ start-commands() {
     # tmux send-keys -t faith:2.1 $'sru 1; sstatus; rs -p 4001\n'            # fake_rsql rails
     # tmux send-keys -t baton:1.1 $'Sru 1; Sstatus\n'                        # baton rails
     # tmux send-keys -t notab:1.1 $'sru 1; sstatus; rs\n'                    # notab rails
+    tmux send-keys -t repl:1.1 $'pry\nrequire-active-support\n'
+    tmux send-keys -t repl:1.2 $'ptpython\n'
+    tmux send-keys -t repl:1.3 $'jenv shell 11; jshell\n'
 }
 
 # ~/.tmux/plugins/tmux-resurrect/scripts/restore.sh

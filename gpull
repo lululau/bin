@@ -1,0 +1,15 @@
+#!/usr/bin/env zsh
+
+if git rev-parse; then
+  git pull
+else
+  for i (*) {
+      if [ -d "$i" -a -d "$i/.git" ]; then
+        echo -e "
+
+
+============================ $i ==========================
+"; (cd "$i"; git branch; git pull;)
+      fi
+    }
+fi

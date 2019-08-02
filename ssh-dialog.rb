@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env SSH_INTERACTIVE=1 ruby
 
 # Init
 require 'rdialog'

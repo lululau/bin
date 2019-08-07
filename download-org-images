@@ -5,7 +5,7 @@ require 'fileutils'
 require 'securerandom'
 
 IMAGE_EXT_NAMES = %w[png jpg jpeg gif webp tiff svg]
-IMAGE_EXT_PATTERN = /\\.#{IMAGE_EXT_NAMES.join("|")}$/i
+IMAGE_EXT_PATTERN = /\.#{IMAGE_EXT_NAMES.join("|")}$/i
 IMAGE_PATH_PATTERNS = [
                        /(?<=\[)https?:\/\/[^\]]*(?:#{IMAGE_EXT_NAMES.join("|")})(?=\])/,
                        /(?<=\[)https?:\/\/[^\]]*(?:#{IMAGE_EXT_NAMES.join("|")})(?=\?q=20\])/,

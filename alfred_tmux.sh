@@ -3,20 +3,20 @@
 ALFRED_TMUX_DEFAULT_SESSION=cmd
 
 typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
-   "hc"        "Java:1.1; echo 'cd ~/kt/hc'"
-   "ddhc"      "Java:1.2; echo 'cd ~/kt/ddhc'"
-   "hc2"       "Java:2.1; echo 'cd ~/kt/hc2'"
-   "inf"       "Java:2.2; echo 'cd ~/kt/infrastructure'"
-   "hcfe"      "Java:3.1; echo"
-   "hcr"       "Java:3.2; echo 'cd ~/kt/hcrawler'"
-   "ddmp"      "Java:3.3; echo 'cd ~/kt/ddmp'"
-   "chelper"   "Java:4.1; echo 'cd ~/casecode/rails-helper-apps/chelper'"
-   "bu.*"      "cmd:1.1; echo 'brew upgrade && brew cleanup'"
-   "jk.*"      "cmd:3.1; echo '#_'"
-   "repl"      "repl:1; echo"
-   "cmd"       "cmd:1.1; echo"
-   "tmp"       "cmd:1.2; echo 'cd ~/tmp'"
-   "down.*"    "cmd:1.2; echo 'cd ~/Downloads'"
+   "^hc$"        "Java:1.1; echo 'cd ~/kt/hc'"
+   "^ddhc$"      "Java:1.2; echo 'cd ~/kt/ddhc'"
+   "^hc2$"       "Java:2.1; echo 'cd ~/kt/hc2'"
+   "^inf$"       "Java:2.2; echo 'cd ~/kt/infrastructure'"
+   "^hcfe$"      "Java:3.1; echo"
+   "^hcr$"       "Java:3.2; echo 'cd ~/kt/hcrawler'"
+   "^ddmp$"      "Java:3.3; echo 'cd ~/kt/ddmp'"
+   "^chelper$"   "Java:4.1; echo 'cd ~/casecode/rails-helper-apps/chelper'"
+   "^bu.*$"      "cmd:1.1; echo 'brew upgrade && brew cleanup'"
+   "^jk.*$"      "cmd:3.1; echo '#_'"
+   "^repl$"      "repl:1; echo"
+   "^cmd$"       "cmd:1.1; echo"
+   "^tmp$"       "cmd:1.2; echo 'cd ~/tmp'"
+   "^down.*$"    "cmd:1.2; echo 'cd ~/Downloads'"
 )
 
 function decorate_command() {

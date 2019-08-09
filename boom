@@ -13,9 +13,10 @@ start-commands() {
     # tmux send-keys -t faith:2.1 $'sru 1; sstatus; rs -p 4001\n'            # fake_rsql rails
     # tmux send-keys -t baton:1.1 $'Sru 1; Sstatus\n'                        # baton rails
     # tmux send-keys -t notab:1.1 $'sru 1; sstatus; rs\n'                    # notab rails
-    tmux send-keys -t repl:1.1 $'pry\nrequire-active-support\n'
-    tmux send-keys -t repl:1.2 $'ptpython\n'
-    tmux send-keys -t repl:1.3 $'jenv shell 11; jshell\n'
+    tmux send-keys -t repl:1.1 $'cd ~/tmp; pry\nrequire-active-support\n'
+    tmux send-keys -t repl:2.1 $'cd ~/tmp; ptpython\n'
+    tmux send-keys -t repl:3.1 $'cd ~/tmp; jenv shell 11; jshell\n'
+    tmux send-keys -t repl:4.1 $'cd ~/tmp; jay\n'
 }
 
 # ~/.tmux/plugins/tmux-resurrect/scripts/restore.sh

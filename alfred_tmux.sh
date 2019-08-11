@@ -2,6 +2,8 @@
 
 ALFRED_TMUX_DEFAULT_SESSION=cmd
 
+iterm2_python=$HOME/Library/ApplicationSupport/iTerm2/iterm2env/versions/3.7.2/bin/python3
+
 typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
    "^hc$"        "Java:1.1; echo 'cd ~/kt/hc'"
    "^ddhc$"      "Java:1.2; echo 'cd ~/kt/ddhc'"
@@ -55,17 +57,11 @@ function tmux_get_client_tty() {
 function iterm2_show() {
   local session=$1
   local client_tty=$(tmux_get_client_tty "$session")
-  osascript <<EOF
-    tell application "iTerm"
-      activate
-      tell first window
-        repeat with the_tab in tabs
-          if tty of current session of the_tab is "$client_tty" then
-            select the_tab
-          end if
-        end repeat
-      end tell
-    end tell
+  $iterm2_python <<EOF
+import iterm2;
+async def main(conn):
+  await iterm2.async_invoke_function(conn, "activate_session_by_tty(tty: \"$client_tty\")")
+iterm2.run_until_complete(main)
 EOF
 }
 

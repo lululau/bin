@@ -57,12 +57,7 @@ function tmux_get_client_tty() {
 function iterm2_show() {
   local session=$1
   local client_tty=$(tmux_get_client_tty "$session")
-  $iterm2_python <<EOF
-import iterm2;
-async def main(conn):
-  await iterm2.async_invoke_function(conn, "activate_session_by_tty(tty: \"$client_tty\")")
-iterm2.run_until_complete(main)
-EOF
+  curl http://localhost:28082 -d "activate_session_by_tty(tty: \"$client_tty\")"
 }
 
 function tmux_create_window() {
@@ -76,7 +71,7 @@ function iterm2_tmux_exec() {
   local window=$3
   local pane=$4
 
-  iterm2_show "$session"
+  iterm2_show "$session" &
 
   if [ -z "$window" ]; then
     window=$(tmux_create_window "$session")
@@ -88,10 +83,9 @@ function iterm2_tmux_exec() {
   fi
   target="$target.$pane"
 
-  tmux select-window -t "$session:$window"
-  tmux select-pane -t "$target"
-
-  tmux send-keys -t "$target" "$command"
+  tmux select-window -t "$session:$window" &
+  tmux select-pane -t "$target" &
+  tmux send-keys -t "$target" "$command" &
 }
 
 cd "$HOME"

@@ -6,32 +6,14 @@ typeset -A tab_project_map
 #   Key:   iTerm2 tab index (count from one)
 #   Value: tmuxinator project name
 tab_project_map=(
-    5 Java
-    6 notab
-    7 cmd
-    8 repl
+    -4 Java
+    -3 notab
+    -2 cmd
+    -1 repl
 )
-
-# for k in "${(@k)tab_project_map}"
-# do
-#     v=$tab_project_map[$k]
-#     cat <<EOF | osascript -ss
-#         tell app "iTerm"
-#              tell current session of item $k of tabs of current window
-#                   write text "{ tmux list-sessions | cut -d: -f1 | grep -q $v; } && tmux attach -t $v || tmuxinator start $v"
-#              end tell
-#         end tell
-# EOF
-# done
 
 for k in "${(@k)tab_project_map}"
 do
     v=$tab_project_map[$k]
-    cat <<EOF | osascript -ss
-        tell app "iTerm"
-             tell current session of item $k of tabs of current window
-                  write text "{ tmux list-sessions -F '#S' | grep -q $v; } && [ -z \$TMUX ] && tmux attach -t $v"
-             end tell
-        end tell
-EOF
+    curl -s http://127.0.0.1:28082 -d "exec_on_tab_at(tab_index: $k, command: \"{ tmux list-sessions -F '#S' | grep -q $v; } && [ -z \$TMUX ] && tmux attach -t $v\")" &> /dev/null
 done

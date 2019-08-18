@@ -5,6 +5,8 @@ ALFRED_TMUX_DEFAULT_SESSION=cmd
 iterm2_python=$HOME/Library/ApplicationSupport/iTerm2/iterm2env/versions/3.7.2/bin/python3
 
 typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
+  "^ty$"        "tiaoyin:1.1; echo 'cd ~/kt/tiaoyin'"
+  "^tyfe$"        "tiaoyin:2.1; echo 'cd ~/kt/tiaoyin-op'"
    "^hc$"        "Java:1.1; echo 'cd ~/kt/hc'"
    "^ddhc$"      "Java:1.2; echo 'cd ~/kt/ddhc'"
    "^hc2$"       "Java:2.1; echo 'cd ~/kt/hc2'"

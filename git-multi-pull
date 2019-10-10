@@ -1,0 +1,11 @@
+#!/usr/bin/env zsh
+
+for i (*) {
+    if [ -d "$i" -a -d "$i/.git" ]; then
+      echo -e "
+
+
+============================ $i ==========================
+"; (cd "$i"; git branch; git pull;)
+    fi
+  }

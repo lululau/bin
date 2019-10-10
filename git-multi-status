@@ -1,0 +1,25 @@
+#!/usr/bin/env zsh
+
+for i (*) {
+    if [ -d "$i" -a -d "$i/.git" ]; then
+      if [ -n "$1" ]; then
+        echo -e "
+
+
+  ===================== $i =====================
+  "; (cd "$i"; git branch; git status )
+      else
+        (cd "$i";
+         if git diff --quiet && git diff --cached --quiet; then
+           :
+         else
+           echo -e "
+
+
+  ===================== $i =====================
+  "; git status
+         fi
+        )
+      fi
+    fi
+  }

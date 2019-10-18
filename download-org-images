@@ -11,7 +11,8 @@ IMAGE_PATH_PATTERNS = [
                        /(?<=\[)https?:\/\/[^\]]*(?:#{IMAGE_EXT_NAMES.join("|")})(?=\?q=20\])/,
                        /(?<=\[)https?:\/\/img.blog\.csdn[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/upload-images\.jianshu\.io[^\]]*(?=\])/,
-                       /(?<=\[)https?:\/\/.*\.xitu\.io[^\]]*(?:image|f=png)[^\]]*(?=\])/
+                       /(?<=\[)https?:\/\/.*\.xitu\.io[^\]]*(?:image|f=png)[^\]]*(?=\])/,
+                       /(?<=\[)https?:\/\/\w+\.qpic\.cn[^\]]*(?=\])/
                       ]
 
 BUFFER_FILE_NAME = ARGV[0]

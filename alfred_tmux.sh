@@ -12,6 +12,7 @@ typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
    "^hc2$"       "Java:2.1; echo 'cd ~/kt/hc2'"
    "^inf$"       "Java:2.2; echo 'cd ~/kt/infrastructure'"
    "^hcfe$"      "Java:3.1; echo"
+   "^fe$"      "Java:3.1; echo"
    "^hcr$"       "Java:3.2; echo 'cd ~/kt/hcrawler'"
    "^ddmp$"      "Java:3.3; echo 'cd ~/kt/ddmp'"
    "^chelper$"   "Java:4.1; echo 'cd ~/cascode/rails-helper-apps/chelper'"

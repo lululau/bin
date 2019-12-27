@@ -16,6 +16,7 @@ typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
    "^hcr$"       "Java:3.2; echo 'cd ~/kt/hcrawler'"
    "^ddmp$"      "Java:3.3; echo 'cd ~/kt/ddmp'"
    "^chelper$"   "Java:4.1; echo 'cd ~/cascode/rails-helper-apps/chelper'"
+   "^help$"   "Java:4.1; echo 'cd ~/cascode/rails-helper-apps/chelper'"
    "^bu.*$"      "cmd:1.1; echo 'brew upgrade && brew cleanup'"
    "^jk.*$"      "cmd:3.1; echo '#_'"
    "^repl$"      "repl:1; echo"

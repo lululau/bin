@@ -24,7 +24,7 @@ artifact_id=${${artifact%:*}#*:}
 version=${artifact##*:}
 dir=${group_id//./\/}/$artifact_id/$version
 
-echo rm -rf ~/.m2/repository/"$dir"
-rm -rf ~/.m2/repository/"$dir"
+echo rm -rf $repo_root/"$dir"
+rm -rf $repo_root/"$dir"
 echo mvn dependency:get -Dartifact=$artifact -Dtransitive=true
 mvn dependency:get -Dartifact=$artifact -Dtransitive=true

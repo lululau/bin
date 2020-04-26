@@ -7,18 +7,14 @@ for i (*) {
 
 
   ===================== $i =====================
-  "; (cd "$i"; git branch; git status )
+  "; (cd "$i"; git branch -vv )
       else
         (cd "$i";
-         if git diff --quiet && git diff --cached --quiet; then
-           :
-         else
            echo -e "
 
 
   ===================== $i =====================
-  "; git status
-         fi
+  "; git branch -vv
         )
       fi
     fi

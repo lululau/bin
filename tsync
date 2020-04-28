@@ -20,12 +20,23 @@ elif [ "$#" -eq 2 ]; then
         pane=${1#.}
     fi
 else
-    echo 'Usage:'
     cat <<EOF
-session_name
-session_name:window_index
-:window_index
-.pane_index
+Usage
+
+  tsync <COMMAND>          # Send COMMAND to all tmux panes
+  tsync <TARGET> <COMMAND> # Send COMMAND to tmux panes identified by TARGET
+
+TARGET
+
+  session_name              # Send COMMAND to panes of <session_name>
+  session_name:window_index # Send COMMAND to panes of <window-index>-th window of <session_name>
+  :window_index             # Send COMMAND to panes of <window-index>-th window of current session
+  .pane_index               # Send COMMAND to <pane-index>-th pane of current window of current session
+
+EXAMPLE
+
+  tsync $'^L'               # Clear screen of all panes (Press Ctrl-v Ctrl-l to input ^L)
+  tsync $'date\n'           # Run date on all panes
 EOF
     exit 1
 fi

@@ -14,6 +14,7 @@ artifact=$(find "$repo_root" -name '*.pom' -type f | perl -ne "
      my \$group_id = join '.', @{fs[0..@fs-4]};
      my \$artifact_id = \${fs[@fs-3]};
      my \$version = \${fs[@fs-2]};
+     next unless \${fs[@fs-1]} eq ( \$artifact_id . '-' . \$version . \".pom\n\");
      printf \"%s:%s:%s\n\", \$group_id, \$artifact_id, \$version;
 " | fzf)
 

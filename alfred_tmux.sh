@@ -29,7 +29,7 @@ typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
    "^tmp$"       "cmd:1.2; echo 'cd ~/tmp'"
    "^down.*$"    "cmd:1.2; echo 'cd ~/Downloads'"
    "^pry.*$"    "repl:1; echo"
-   "^ptp.*$"    "repl:2; echo"
+   "^aq$"    "repl:2; echo"
    "^jsh.*$"    "repl:3; echo"
    "^jay.*$"    "repl:4; echo"
 )

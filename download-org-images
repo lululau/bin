@@ -12,7 +12,9 @@ IMAGE_PATH_PATTERNS = [
                        /(?<=\[)https?:\/\/img.blog\.csdn[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/upload-images\.jianshu\.io[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/.*\.xitu\.io[^\]]*(?:image|f=png)[^\]]*(?=\])/,
-                       /(?<=\[)https?:\/\/\w+\.qpic\.cn[^\]]*(?=\])/
+                       /(?<=\[)https?:\/\/\w+\.qpic\.cn[^\]]*(?=\])/,
+                       /(?<=\[)https?:\/\/segmentfault.com\/img\/[^\]]*(?=\])/,
+                       /(?<=\[)https?:\/\/ask.qcloudimg.com\/[^\]]*(?=\])/
                       ]
 
 BUFFER_FILE_NAME = ARGV[0]

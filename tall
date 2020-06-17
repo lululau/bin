@@ -10,7 +10,7 @@ tab_project_map=(
     -4 notab
     -3 cmd
     -2 repl
-    -1 tiaoyin
+    -1 logs
 )
 
 for k in "${(@k)tab_project_map}"

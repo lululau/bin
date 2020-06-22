@@ -5,7 +5,10 @@ ALFRED_TMUX_DEFAULT_SESSION=cmd
 iterm2_python=$HOME/Library/ApplicationSupport/iTerm2/iterm2env/versions/3.7.2/bin/python3
 
 typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
-  "^ty$"        "tiaoyin:1.1; echo 'cd ~/kt/tiaoyin'"
+  "^llda$"        "logs:1.1; echo -n 'vrl lcl-dev-admin -a' | pbcopy"
+  "^llp1a$"        "logs:2.1; echo -n 'vrl lcl-pro1-admin -a' | pbcopy"
+  "^llp2a$"        "logs:3.1; echo -n 'vrl lcl-pro2-admin -a' | pbcopy"
+  "^llp3a$"        "logs:4.1; echo -n 'vrl lcl-pro3-admin -a' | pbcopy"
   "^tyfe$"        "tiaoyin:2.1; echo 'cd ~/kt/tiaoyin-op'"
   "^hc$"        "Java:1.1; echo 'cd ~/kt/hc'"
   "^hcfe$"      "Java:1.2; echo"

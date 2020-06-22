@@ -1,0 +1,60 @@
+#!/usr/bin/env zsh
+
+name=$1
+
+config_file=$HOME/.vrl.yml
+
+function view_remote_log() {
+  local config_name=$1
+  local auto=$2
+
+  ssh=$(yq r "$config_file" "$config_name.ssh" "$config_file")
+  file=$(yq r "$config_file" "$config_name.file" "$config_file")
+  file_type=$(ssh $ssh "file $file")
+  if echo "$file_type" | grep -q ': directory$'; then
+    shift
+    auto=$1
+    if [ "$auto" = "-a" ]; then
+      selected_file=$(ssh $ssh "ls -trv $file" | head -1)
+    else
+      selected_file=$(ssh $ssh "ls -trv $file" | fzf)
+    fi
+
+    if [ -z "$selected_file" ]; then
+      exit 0
+    fi
+    selected_file=(${(f)selected_file})
+    file=$(echo ${(q)file}${^${(q)selected_file}})
+  fi
+
+  ssh $ssh -t "lnav $file"
+}
+
+if [ ! -e "$config_file" ]; then
+  echo "Config file ($config_file) not found."
+  exit 1
+fi
+
+names=$(yq r "$config_file" '*' -pp)
+
+if [ -n "$name" ]; then
+  matched_name=$(echo "$names" | grep -F "$name" | head)
+  if [ -n "$matched_name" ]; then
+    view_remote_log "$matched_name" "$2"
+  else
+    echo "Config item named ($name) not found"
+    exit 1
+  fi
+else
+  selected_name=$(echo "$names" | fzf --bind='enter:accept,alt-enter:execute(echo auto)+accept')
+  if [ -z "$selected_name" ]; then
+    exit
+  fi
+
+  if echo "$selected_name" | head -1 | grep -q "^auto$"; then
+    selected_name=$(echo "$selected_name" | tail -1)
+    view_remote_log "$selected_name" -a
+  else
+    view_remote_log "$selected_name"
+  fi
+fi

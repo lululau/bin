@@ -38,7 +38,7 @@ fi
 names=$(yq r "$config_file" '*' -pp)
 
 if [ -n "$name" ]; then
-  matched_name=$(echo "$names" | grep -F "$name" | head)
+  matched_name=$(echo "$names" | grep "$name" | head -1)
   if [ -n "$matched_name" ]; then
     view_remote_log "$matched_name" "$2"
   else

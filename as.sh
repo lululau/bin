@@ -10,6 +10,8 @@
 #  author : Core Engine @ Taobao.com
 #    date : 2019-05-15
 
+export JAVA_VERSION=11
+
 # current arthas script version
 ARTHAS_SCRIPT_VERSION=3.1.1
 

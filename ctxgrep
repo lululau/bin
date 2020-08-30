@@ -1,0 +1,150 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'ostruct'
+
+module CtxGrep
+  class Cli
+    class << self
+      def start
+        options = parse_options!
+        App.new(options).run!
+      end
+
+      def parse_options!
+        options = OpenStruct.new(max_prefetch: 100)
+        OptionParser.new do |opts|
+          opts.on('-v', '', 'Print only matched lines but with no context matched.') do |reverse|
+            options.reverse = true
+          end
+
+          opts.on('-xMAX_PREFETCH', '--max-context-prefetch=MAX_PREFETCH', 'Specify max prefetch lines for context matching') do |max|
+            options.max_prefetch = max.to_i
+          end
+        end.parse!
+        options.pattern = Regexp.new(ARGV.shift)
+        options.context_pattern = ARGV.shift
+        options.argv = ARGV
+        options
+      end
+    end
+  end
+
+  class App
+    attr_accessor :options
+
+    def initialize(options)
+      @options = options
+      @matched_line = nil
+      @matched_groups = []
+      @hold_buffer = []
+    end
+
+    def context_pattern
+      Regexp.new(@options.context_pattern.gsub(/\$\d+/) { |m| @matched_groups[m[1..-1].to_i] })
+    end
+
+    def run!
+      ARGF.each do |line|
+        if @matched_line
+          if line =~ context_pattern
+            print @matched_line unless @options.reverse
+            print line unless @options.reverse
+            @matched_line = nil
+            while not @hold_buffer.empty?
+              hold_buffer_copy = []
+              @hold_buffer.each_with_index do |hold_line, idx|
+                if @matched_line
+                  if hold_line =~ context_pattern
+                    print @matched_line unless @options.reverse
+                    print hold_line unless @options.reverse
+                    @matched_line = nil
+                    hold_buffer_copy.concat(@hold_buffer[idx+1..-1])
+                    break
+                  else
+                    hold_buffer_copy << hold_line
+                  end
+                else
+                  if md = @options.pattern.match(hold_line)
+                    @matched_line = hold_line
+                    @matched_groups = md.to_a
+                  end
+                end
+              end
+              @hold_buffer = hold_buffer_copy
+              break if @matched_line
+            end
+          else
+            if @hold_buffer.size >= @options.max_prefetch
+              print @matched_line if @options.reverse
+              @matched_line = nil
+              while not @hold_buffer.empty?
+                hold_buffer_copy = []
+                @hold_buffer.each_with_index do |hold_line, idx|
+                  if @matched_line
+                    if hold_line =~ context_pattern
+                      print @matched_line unless @options.reverse
+                      print hold_line unless @options.reverse
+                      @matched_line = nil
+                      hold_buffer_copy.concat(@hold_buffer[idx+1..-1])
+                      break
+                    else
+                      hold_buffer_copy << hold_line
+                    end
+                  else
+                    if md = @options.pattern.match(hold_line)
+                      @matched_line = hold_line
+                      @matched_groups = md.to_a
+                    end
+                  end
+                end
+                @hold_buffer = hold_buffer_copy
+                break if @matched_line
+              end
+            else
+              @hold_buffer << line
+            end
+          end
+        else
+          if md = @options.pattern.match(line)
+            @matched_line = line
+            @matched_groups = md.to_a
+          end
+        end
+      end
+
+      while not @hold_buffer.empty?
+        hold_buffer_copy = []
+        @hold_buffer.each_with_index do |hold_line, idx|
+          if @matched_line
+            if hold_line =~ context_pattern
+              print @matched_line unless @options.reverse
+              print hold_line unless @options.reverse
+              @matched_line = nil
+              hold_buffer_copy.concat(@hold_buffer[idx+1..-1])
+              break
+            else
+              hold_buffer_copy << hold_line
+            end
+          else
+            if md = @options.pattern.match(hold_line)
+              @matched_line = hold_line
+              @matched_groups = md.to_a
+            end
+          end
+        end
+        @hold_buffer = hold_buffer_copy
+        if @matched_line
+          print @matched_line if @options.reverse
+          @matched_line = nil
+        end
+      end
+
+      if @matched_line
+        print @matched_line if @options.reverse
+      end
+    end
+  end
+end
+
+CtxGrep::Cli.start

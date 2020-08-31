@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'optparse'
 require 'ostruct'
@@ -14,7 +15,7 @@ module CtxGrep
       def parse_options!
         options = OpenStruct.new(max_prefetch: 100)
         OptionParser.new do |opts|
-          opts.on('-v', '', 'Print only matched lines but with no context matched.') do |reverse|
+          opts.on('-v', '', 'Print only matched lines but with no context matched.') do
             options.reverse = true
           end
 
@@ -51,7 +52,7 @@ module CtxGrep
             print @matched_line unless @options.reverse
             print line unless @options.reverse
             @matched_line = nil
-            while not @hold_buffer.empty?
+            until @hold_buffer.empty?
               hold_buffer_copy = []
               @hold_buffer.each_with_index do |hold_line, idx|
                 if @matched_line
@@ -59,7 +60,7 @@ module CtxGrep
                     print @matched_line unless @options.reverse
                     print hold_line unless @options.reverse
                     @matched_line = nil
-                    hold_buffer_copy.concat(@hold_buffer[idx+1..-1])
+                    hold_buffer_copy.concat(@hold_buffer[idx + 1..-1])
                     break
                   else
                     hold_buffer_copy << hold_line
@@ -78,7 +79,7 @@ module CtxGrep
             if @hold_buffer.size >= @options.max_prefetch
               print @matched_line if @options.reverse
               @matched_line = nil
-              while not @hold_buffer.empty?
+              until @hold_buffer.empty?
                 hold_buffer_copy = []
                 @hold_buffer.each_with_index do |hold_line, idx|
                   if @matched_line
@@ -86,7 +87,7 @@ module CtxGrep
                       print @matched_line unless @options.reverse
                       print hold_line unless @options.reverse
                       @matched_line = nil
-                      hold_buffer_copy.concat(@hold_buffer[idx+1..-1])
+                      hold_buffer_copy.concat(@hold_buffer[idx + 1..-1])
                       break
                     else
                       hold_buffer_copy << hold_line
@@ -113,7 +114,7 @@ module CtxGrep
         end
       end
 
-      while not @hold_buffer.empty?
+      until @hold_buffer.empty?
         hold_buffer_copy = []
         @hold_buffer.each_with_index do |hold_line, idx|
           if @matched_line
@@ -121,7 +122,7 @@ module CtxGrep
               print @matched_line unless @options.reverse
               print hold_line unless @options.reverse
               @matched_line = nil
-              hold_buffer_copy.concat(@hold_buffer[idx+1..-1])
+              hold_buffer_copy.concat(@hold_buffer[idx + 1..-1])
               break
             else
               hold_buffer_copy << hold_line

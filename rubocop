@@ -1,3 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 
-~/.rvm/gems/ruby-2.7.0/gems/rubocop-0.82.0/exe/rubocop "$@"
+ruby_dir=$(print $HOME/.rvm/gems/ruby-<0-9>.<0-9>.<0-9>(On[0,1]))
+gem_dir=$(print $ruby_dir/gems/rubocop-<0-9>*(On[0,1]))
+$gem_dir/exe/rubocop "$@"

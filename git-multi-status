@@ -10,7 +10,7 @@ for i (*) {
   "; (cd "$i"; git branch; git status )
       else
         (cd "$i";
-         if git diff --quiet && git diff --cached --quiet; then
+         if [ -z "$(git status -s)" ]; then
            :
          else
            echo -e "

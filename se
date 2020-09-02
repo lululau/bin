@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -n "$EMACS" ]; then
+if [ -n "$INSIDE_EMACS" ]; then
     emacsclient -q --eval "(other-window 1)" &> /dev/null
 fi
 

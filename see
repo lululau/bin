@@ -2,7 +2,7 @@
 
 emacsclient -q --eval "(spacemacs/persp-switch-to-1)" &> /dev/null
 
-if [ -n "$EMACS" ]; then
+if [ -n "$INSIDE_EMACS" ]; then
     emacsclient -q --eval "(other-window 1)" &> /dev/null
 fi
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env zsh
 
+open -a Emacs
 ~/bin/idea-helpers/emacsclient-for-idea.sh "$@"
-emacsclient -q --eval "(progn (find-file \"$2\") (spacemacs/git-blame-micro-state))" &> /dev/null
+emacsclient -q --eval "(progn (find-file \"$2\") (spacemacs/git-blame-transient-state/body))" &> /dev/null

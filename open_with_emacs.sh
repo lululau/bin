@@ -16,6 +16,7 @@ fi
 
 if echo "$file" | grep -q '\(\.rb$\)\|\(.rake$\)\|\(Gemfile\)' && [ -n "$2" ]
 then
+    open -a Emacs
     /usr/local/bin/emacsclient -n +"$2" "$file"
 else
     open "$file"

@@ -13,14 +13,14 @@ start-commands() {
     # tmux send-keys -t faith:2.1 $'sru 1; sstatus; rs -p 4001\n'            # fake_rsql rails
     # tmux send-keys -t baton:1.1 $'Sru 1; Sstatus\n'                        # baton rails
     # tmux send-keys -t notab:1.1 $'sru 1; sstatus; rs\n'                    # notab rails
-    tmux send-keys -t repl:1.1 $'cd ~/tmp; pry\nrequire-active-support\n'
-    tmux rename-window -t repl:1.1 pry
-    tmux send-keys -t repl:2.1 $'cd ~/tmp; ptpython\n'
-    tmux rename-window -t repl:1.1 ptpython
-    tmux send-keys -t repl:3.1 $'cd ~/tmp; jenv shell 11; jshell\n'
-    tmux rename-window -t repl:1.1 jshell
-    tmux send-keys -t repl:4.1 $'cd ~/tmp; jay\n'
-    tmux rename-window -t repl:1.1 jay
+    # tmux send-keys -t repl:1.1 $'cd ~/tmp; pry\nrequire-active-support\n'
+    # tmux rename-window -t repl:1.1 pry
+    # tmux send-keys -t repl:2.1 $'cd ~/tmp; ptpython\n'
+    # tmux rename-window -t repl:1.1 ptpython
+    # tmux send-keys -t repl:3.1 $'cd ~/tmp; jenv shell 11; jshell\n'
+    # tmux rename-window -t repl:1.1 jshell
+    # tmux send-keys -t repl:4.1 $'cd ~/tmp; jay\n'
+    # tmux rename-window -t repl:1.1 jay
 }
 
 # ~/.tmux/plugins/tmux-resurrect/scripts/restore.sh

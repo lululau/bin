@@ -6,11 +6,11 @@ typeset -A tab_project_map
 #   Key:   iTerm2 tab index (count from one)
 #   Value: tmuxinator project name
 tab_project_map=(
-    -5 Java
-    -4 notab
-    -3 cmd
-    -2 repl
-    -1 logs
+    -3 Java
+    -2 notab
+    -1 cmd
+    # -2 repl
+    # -1 logs
 )
 
 for k in "${(@k)tab_project_map}"

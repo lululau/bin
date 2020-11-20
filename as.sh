@@ -229,7 +229,7 @@ reset_for_env()
 
     if [[ (-z "${JAVA_HOME}") && ( -e "/usr/libexec/java_home") ]]; then
         # for mac
-        JAVA_HOME=`/usr/libexec/java_home -v 1.8`
+        JAVA_HOME=`/usr/libexec/java_home`
     fi
 
     if [ -z "${JAVA_HOME}" ]; then

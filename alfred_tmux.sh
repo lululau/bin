@@ -37,6 +37,7 @@ typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
    "^aq$"    "repl:2; echo"
    "^jsh.*$"    "repl:3; echo"
    "^jay.*$"    "repl:4; echo"
+   "^k(9s?)?$"    "notab:1;"
 )
 
 function decorate_command() {

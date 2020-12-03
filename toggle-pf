@@ -6,10 +6,41 @@ if echo $result | grep -q 'pf not enabled'; then
   if [ "$1" = all ]; then
     pfctl -e -f ~/.config/.mitmproxy.pf.conf
     echo '\npf  ~/.config/.mitmproxy.pf.conf enabled.'
+  elif [ -n "$1" ]; then
+    cat "$0" |  perl -ne 's/^# //; print if /^#PF_RULE_BEGIN/../^#PF_RULE_END/' > /tmp/toggle-pf.pf.conf
+    perl -i -pe "s/^target_hosts.*/target_hosts = \"{$1}\"/" /tmp/toggle-pf.pf.conf
+    if [ -n "$2" ]; then
+      perl -i -pe "s/^redir_ports.*/redir_ports = \"{$2}\"/" /tmp/toggle-pf.pf.conf
+    fi
+    pfctl -e -f /tmp/toggle-pf.pf.conf
+    echo '\npfctl -e -f /tmp/toggle-pf.pf.conf.'
   else
     pfctl -e -f ~/.config/.mitmproxy.en0.pf.conf
     echo '\npf ~/.config/.mitmproxy.en0.pf.conf enabled.'
   fi
 else
   echo 'pf disabled.'
+  rm -f /tmp/toggle-pf.pf.conf
 fi
+
+# #PF_RULE_BEGIN
+# #The ports to redirect to proxy
+# redir_ports = "{http, https, 8080, 8081, 8082, 8083, 8070, 8071, 8072, 8083}"
+# target_hosts = "{ruby-china.org, github.com}"
+# #The address the transparent proxy is listening on
+# tproxy = "127.0.0.1 port 8888"
+# #The user the transparent proxy is running as
+# tproxy_user = "root"
+# #The users whose connection must be redirected.
+# #
+# #This cannot involve the user which runs the
+# #transparent proxy as that would cause an infinite loop.
+# #
+# #Here we redirect for all users which don't run transparent proxy.
+# redir_users = "{ !=" $tproxy_user "}"
+# #If you only wish to redirect traffic for particular users
+# #you may also do:
+# #redir_users = "{= john, = jane}"
+# rdr pass proto tcp from any to $target_hosts port $redir_ports -> $tproxy
+# pass out route-to (lo0 127.0.0.1) proto tcp from any to $target_hosts port $redir_ports user $redir_users
+# #PF_RULE_END

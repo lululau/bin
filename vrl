@@ -8,8 +8,8 @@ function view_remote_log() {
   local config_name=$1
   local auto=$2
 
-  ssh=$(yq r "$config_file" "$config_name.ssh" "$config_file")
-  file=$(yq r "$config_file" "$config_name.file" "$config_file")
+  ssh=$(yq e ".$config_name.ssh" "$config_file")
+  file=$(yq e ".$config_name.file" "$config_file")
   file_type=$(ssh $ssh "file $file")
   if echo "$file_type" | grep -q ': directory$'; then
     shift
@@ -39,7 +39,7 @@ if [ ! -e "$config_file" ]; then
   exit 1
 fi
 
-names=$(yq r "$config_file" '*' -pp)
+names=$(grep '^[^ ]' "$config_file" | sed 's/:$//')
 
 if [ -n "$name" ]; then
   matched_name=$(echo "$names" | grep "$name" | head -1)

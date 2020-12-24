@@ -5,6 +5,7 @@ if [ -n "$INSIDE_EMACS" ]; then
 fi
 
 if [ $(uname) = Darwin ]; then
+  open -a Emacs
   if [ -n "$1" ]; then
       emacsclient -n "$@"
   else

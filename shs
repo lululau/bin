@@ -1,7 +1,12 @@
 #!/bin/bash
 
-ip_url="http://$(ifconfig en0 | ag '(?<=inet )\S+' -o):${1:-8080}/"
-bonjour_hostname_url="http://$(scutil --get LocalHostName | perl -pe '$_=lc').local:${1:-8080}/"
+if [ -n "$1" ]; then
+  port=:$1
+else
+  port=""
+fi
+ip_url="http://$(ifconfig en0 | ag '(?<=inet )\S+' -o)${port}/"
+bonjour_hostname_url="http://$(scutil --get LocalHostName | perl -pe '$_=lc').local${port}/"
 echo "$ip_url" | pbcopy
 echo "URL copied to clipboard: $ip_url"
 echo
@@ -10,5 +15,5 @@ echo '---------------------------------------'
 echo
 # python -m SimpleHTTPServer ${1:-8080}
 # ruby -run -e httpd . -p ${1:-8080}
-
-webfsd -F -l- -p ${1:-8080}
+# webfsd -F -l- -p ${1:-8080}
+simple-http-server -u -l $[1024*1024*1024*1024] -t 20 -p ${1:-80}   # cargo install simple-http-server

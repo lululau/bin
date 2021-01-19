@@ -15,7 +15,7 @@ function view_remote_log() {
     shift
     auto=$1
     if [ "$auto" = "-a" ]; then
-      selected_file=$(ssh $ssh "ls -trv $file/20*.log*" | head -1)
+      selected_file=$(ssh $ssh "ls -trv $file/*.log | grep -v gc" | head -1)
       if [ -z "$selected_file" ]; then
         selected_file=$(ssh $ssh "ls -trv $file/*" | head -1)
       fi

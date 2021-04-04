@@ -54,10 +54,12 @@ end
 STDIN.each_line do |line|
   line.chomp!
 
+  puts line
+
   get_image_links(line).each do |link|
     local_image_path = download_image(link)
     line.sub!(link, local_image_path)
+  end.tap do |links|
+    puts line unless links.empty?
   end
-
-  puts line
 end

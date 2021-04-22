@@ -57,8 +57,8 @@ else
 
   if echo "$selected_name" | head -1 | grep -q "^auto$"; then
     selected_name=$(echo "$selected_name" | tail -1)
-    view_remote_log "$selected_name" -a
-  else
     view_remote_log "$selected_name"
+  else
+    view_remote_log "$selected_name" -a
   fi
 fi

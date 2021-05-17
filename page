@@ -1,0 +1,35 @@
+#!/bin/bash
+
+function paginate() {
+  local filename=$1
+  local total_page=$2
+  local total_line=$[$(cat "$filename" | wc -l)]
+  if [ "$[$(tail -c 1 "$filename" | od -An -td1)]" != 10 ]; then
+    total_line=$[total_line+1]
+  fi
+  if [ $total_line -lt $total_page ]; then
+    total_page=$total_line
+  fi
+  local rem=$[total_line % total_page]
+  local page_size=$[total_line / total_page]
+  for i in $(seq 1 $total_page); do
+    if [ $i -gt $rem ]; then
+      echo "$[page_size * (i-1) + 1 + rem],$[page_size * i + rem]"
+    else
+      echo "$[page_size * (i-1) + 1 + i - 1],$[page_size * i + i]"
+    fi
+    # echo "$[page_size * (i-1) + 1],$[page_size * i]"
+  done
+}
+
+function print_page() {
+  local filename=$1
+  local pagination=$2
+  sed -n ${pagination}p "$filename"
+}
+
+if echo "$2" | grep -q ,; then
+  print_page "$@"
+else
+  paginate "$@"
+fi

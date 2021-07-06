@@ -14,6 +14,7 @@ IMAGE_PATH_PATTERNS = [
                        /(?<=\[)https?:\/\/.*\.xitu\.io[^\]]*(?:image|f=png)[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/\w+\.qpic\.cn[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/segmentfault.com\/img\/[^\]]*(?=\])/,
+                       /(?<=\[)https?:\/\/camo\.githubusercontent\.com\/[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/ask.qcloudimg.com\/[^\]]*(?=\])/
                       ]
 

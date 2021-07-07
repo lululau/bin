@@ -1,0 +1,3 @@
+#!/bin/bash
+
+pbcopy > $(tmux display-message -p '#{client_tty}')

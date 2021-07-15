@@ -31,7 +31,8 @@ function view_remote_log() {
     file=$(echo ${(q)file}${^${(q)selected_file}})
   fi
 
-  ssh $ssh -t "lnav $file"
+  # ssh $ssh -t "lnav $file"
+  lnav "$ssh:$file"
 }
 
 if [ ! -e "$config_file" ]; then

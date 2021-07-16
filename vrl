@@ -6,6 +6,34 @@ name=$1
 
 config_file=$HOME/.vrl.yml
 
+function remote_fzf() {
+  local ssh=$1
+  while true; do
+    selected_file=$(ssh $ssh "export LS_COLORS='$LS_COLORS'; ls -lht --color=always '$2'" | tail -n +2 | fzf --ansi --bind 'alt-a:execute(echo ..)+accept')
+    if [ -z "$selected_file" ]; then
+      exit 0
+    fi
+
+    if [ "${selected_file:0:2}" = .. ]; then
+      return
+    fi
+
+    parent_dir=$2/$(echo "$selected_file" | perl -lne 'my @f = split(/\s+/, $_, 9); print $f[8];')
+    if [ "${selected_file:0:1}" = 'd' ]; then
+      remote_fzf "$ssh" "$parent_dir"
+    else
+
+      if [ -n "$TMUX" ]; then
+        old_twindow_name=$(tmux display-message -p '#{window_name}')
+        tmux rename-window "VRL[$ssh]"
+      fi
+
+      ssh $ssh -t "lnav $parent_dir"
+      # lnav "$ssh:$parent_dir"
+    fi
+  done
+}
+
 function view_remote_log() {
   local config_name=$1
   local auto=$2
@@ -19,45 +47,18 @@ function view_remote_log() {
     if [ "$auto" = "-a" ]; then
       selected_file=$(ssh $ssh "ls -t $file/*.log | grep -v gc" | head -1)
       if [ -z "$selected_file" ]; then
-        parent_dir=$file
-        selected_file="d 0 0 0 0 0 0 0 0"
-        while [ "${selected_file:0:1}" = 'd' ]; do
-          selected_file=$(ssh $ssh "export LS_COLORS='$LS_COLORS'; ls -lht --color=always '$parent_dir'" | tail -n +2 | fzf --ansi)
-          if [ -z "$selected_file" ]; then
-            exit 0
-          fi
-          parent_dir=${parent_dir}/$(echo "$selected_file" | perl -lne 'my @f = split(/\s+/, $_, 9); print $f[8];')
-        done
-        file=$parent_dir
+        remote_fzf "$ssh" "$file"
       else
         selected_file=${selected_file:t}
-        file=$(echo ${(q)file}${^${(q)selected_file}})
+        log=$(echo ${(q)file}${^${(q)selected_file}})
+        ssh $ssh -t "lnav $log"
+        # lnav "$ssh:$log"
+        remote_fzf "$ssh" "$file"
       fi
     else
-      parent_dir=$file
-      selected_file="d 0 0 0 0 0 0 0 0"
-      while [ "${selected_file:0:1}" = 'd' ]; do
-        selected_file=$(ssh $ssh "export LS_COLORS='$LS_COLORS'; ls -lht --color=always '$parent_dir'" | tail -n +2 | fzf --ansi)
-        if [ -z "$selected_file" ]; then
-          exit 0
-        fi
-        parent_dir=${parent_dir}/$(echo "$selected_file" | perl -lne 'my @f = split(/\s+/, $_, 9); print $f[8];')
-      done
-      file=$parent_dir
-    fi
-
-    if [ -z "$selected_file" ]; then
-      exit 0
+      remote_fzf "$ssh" "$file"
     fi
   fi
-
-  if [ -n "$TMUX" ]; then
-    old_twindow_name=$(tmux display-message -p '#{window_name}')
-    tmux rename-window "VRL[$ssh]"
-  fi
-
-  ssh $ssh -t "lnav $file"
-  # lnav "$ssh:$file"
 }
 
 if [ ! -e "$config_file" ]; then

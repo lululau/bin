@@ -23,11 +23,6 @@ function remote_fzf() {
       remote_fzf "$ssh" "$parent_dir"
     else
 
-      if [ -n "$TMUX" ]; then
-        old_twindow_name=$(tmux display-message -p '#{window_name}')
-        tmux rename-window "VRL[$ssh]"
-      fi
-
       ssh $ssh -t "lnav $parent_dir"
       # lnav "$ssh:$parent_dir"
     fi
@@ -37,6 +32,11 @@ function remote_fzf() {
 function view_remote_log() {
   local config_name=$1
   local auto=$2
+
+  if [ -n "$TMUX" ]; then
+    old_twindow_name=$(tmux display-message -p '#{window_name}')
+    tmux rename-window "VRL[$config_name]"
+  fi
 
   ssh=$(yq e ".$config_name.ssh" "$config_file")
   file=$(yq e ".$config_name.file" "$config_file")

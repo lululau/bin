@@ -5,6 +5,7 @@ ALFRED_TMUX_DEFAULT_SESSION=cmd
 iterm2_python=$HOME/Library/ApplicationSupport/iTerm2/iterm2env/versions/3.7.2/bin/python3
 
 typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
+  "^logs$"        "logs:1.1;"
   "^llda$"        "logs:1.1; echo -n 'vrl lcl-devb-admin -a' | pbcopy"
   "^lmda$"        "logs:1.1; echo -n 'vrl md-dev-admin -a' | pbcopy"
   "^llp1$"        "logs:2.1; echo -n 'vrl lcl-pro1 -a' | pbcopy"

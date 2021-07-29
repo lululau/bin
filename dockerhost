@@ -1,7 +1,9 @@
 #!/bin/bash
 
-if screen -ls dockerhost | grep -q dockerhost; then
-   screen -e '^jj' -x dockerhost
-else
-   screen -e '^jj' -S dockerhost ~/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/tty
-fi
+nc -U ~/Library/Containers/com.docker.docker/Data/debug-shell.sock
+
+# if screen -ls dockerhost | grep -q dockerhost; then
+#    screen -e '^jj' -x dockerhost
+# else
+#    screen -e '^jj' -S dockerhost ~/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/tty
+# fi

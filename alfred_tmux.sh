@@ -6,6 +6,7 @@ iterm2_python=$HOME/Library/ApplicationSupport/iTerm2/iterm2env/versions/3.7.2/b
 
 typeset -A ALFRED_TMUX_COMMAND_MAPPINGS=(
   "^logs$"        "logs;"
+  "^k9s$"        "k9s;"
   "^llda$"        "logs:1.1; echo -n 'vrl lcl-devb-admin -a' | pbcopy"
   "^lmda$"        "logs:1.1; echo -n 'vrl md-dev-admin -a' | pbcopy"
   "^llp1$"        "logs:2.1; echo -n 'vrl lcl-pro1 -a' | pbcopy"

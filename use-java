@@ -1,11 +1,29 @@
 #!/bin/bash
 
-if [ "$1" = 9 -o "$1" = 1.9 ]; then
-   ln -nfs /Library/Java/JavaVirtualMachines/jdk*9*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
-elif [ "$1" = 10 -o "$1" = 1.10 ]; then
-     ln -nfs /Library/Java/JavaVirtualMachines/jdk*10*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
-elif [ "$1" = 11 -o "$1" = 1.11 ]; then
-  ln -nfs /Library/Java/JavaVirtualMachines/jdk*11*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
-elif [ "$1" = 8 -o "$1" = 1.8 ]; then
-   ln -nfs /Library/Java/JavaVirtualMachines/jdk*1.8*.jdk /Library/Java/JavaVirtualMachines/CurrentJDK
+
+if [ "$1" = 8 -o "$1" = 1.8 ]; then
+  java_dir=$(echo /Library/Java/JavaVirtualMachines/jdk*1.8*.jdk)
+else
+  java_dir=$(echo /Library/Java/JavaVirtualMachines/jdk*$1*.jdk)
 fi
+
+if [ -e "$java_dir" ]; then
+  cd /Library/Java/JavaVirtualMachines
+  for version in *; do
+    if [ "$version" != CurrentJDK ]; then
+      if [ -e "$version"/Contents/Info.plist  ]; then
+        mv "$version"/Contents/Info.plist "$version"/Contents/Info.plist.disabled
+      fi
+    fi
+  done
+
+  ln -nfs "$java_dir" /Library/Java/JavaVirtualMachines/CurrentJDK
+  mv "$java_dir"/Contents/Info.plist.disabled "$java_dir"/Contents/Info.plist
+  /usr/bin/java -version
+else
+  echo "Version not found: $1"
+  ls -l /Library/Java/JavaVirtualMachines/
+  exit 1
+fi
+
+

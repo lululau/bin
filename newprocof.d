@@ -119,7 +119,474 @@ syscall::bsdthread_register:return
 	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
 	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
 	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
 
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
+	this->argv_ptr += this->wordsize;
+	this->argc--;
+}
+
+
+
+syscall::bsdthread_register:return
+/ progenyof($target) &&  this->argc /
+{
+	this->here_argv = copyin(this->argv_ptr, this->wordsize);
+	this->arg = this->is64Bit ? *(unsigned long long*)(this->here_argv) : *(unsigned long*)(this->here_argv);
+	this->here_arg = copyinstr(this->arg, COPYINSTRLIMIT);
+	printf(" %s%s", this->here_arg, COPYINSTRLIMIT - 1 < strlen(this->here_arg) ? " (...)" : "");
 	this->argv_ptr += this->wordsize;
 	this->argc--;
 }

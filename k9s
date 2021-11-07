@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export XDG_CONFIG_HOME=$HOME/Library/Preferences
+export LC_CTYPE=en_US.UTF-8
+exec /usr/local/bin/k9s "$@"

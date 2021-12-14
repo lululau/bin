@@ -23,8 +23,8 @@ function remote_fzf() {
       remote_fzf "$ssh" "$parent_dir"
     else
 
-      # ssh $ssh -t "lnav $parent_dir"
-      lnav "$ssh:$parent_dir"
+      ssh $ssh -t "lnav $parent_dir"
+      # lnav "$ssh:$parent_dir"
     fi
   done
 }
@@ -51,8 +51,8 @@ function view_remote_log() {
       else
         selected_file=${selected_file:t}
         log=$(echo ${(q)file}${^${(q)selected_file}})
-        # ssh $ssh -t "lnav $log"
-        lnav "$ssh:$log"
+        ssh $ssh -t "lnav $log"
+        # lnav "$ssh:$log"
         remote_fzf "$ssh" "$file"
       fi
     else

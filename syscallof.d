@@ -41,7 +41,7 @@ dtrace:::BEGIN
 	printf("Tracing... Hit Ctrl-C to end.\n");
 }
 
-syscall:::entry /pid == $target/
+syscall:::entry /pid == $target || progenyof($target) /
 {
 	@num[pid, execname, probefunc] = count();
 }

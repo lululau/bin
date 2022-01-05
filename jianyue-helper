@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require 'sinatra'
+
+config_dir = ARGV[0]
+port = ARGV[1].to_i
+config_file = File.expand_path(config_dir) + '/simpread_config2.json'
+
+set :port, port
+
+get '/config' do
+  content_type :json
+
+  resp = {
+    status: 200,
+    result: IO.read(config_file)
+  }
+
+  resp.to_json
+end
+
+
+post '/config' do
+  IO.write(config_file, params["config"])
+  {status: 200}.to_json
+end

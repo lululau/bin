@@ -1,7 +1,12 @@
 #!/bin/bash
 
 if [ "$(uname)" = Darwin ]; then
-  emacsclient -s term -t "$@"
+  if [ -n "$INSIDE_EMACS" ]; then
+    emacsclient --eval "(other-window 1)" &> /dev/null
+    emacsclient "$@"
+  else
+    emacsclient -s term -t "$@"
+  fi
 else
   emacsclient -t "$@"
 fi

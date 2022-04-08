@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ "$(uname)" = Darwin ]; then
-  if [ -n "$INSIDE_EMACS" ]; then
-    emacsclient --eval "(other-window 1)" &> /dev/null
+  if [ "$(is_inside_emacs)" = true ]; then
+    emacsclient --eval "(split-window)" &> /dev/null
     emacsclient "$@"
   else
     emacsclient -s term -t "$@"

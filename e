@@ -1,7 +1,20 @@
 #!/bin/bash
 
-if [ -n "$INSIDE_EMACS" ]; then
-    emacsclient -q --eval "(other-window 1)" &> /dev/null
+function is_inside_emacs() {
+  if [ -n "$TMUX" ]; then
+    local client_tty="$(tmux display-message -p '#{client_tty}')"
+    if lsof "$client_tty" | grep -q Emacs; then
+      echo true
+    else
+      echo false
+    fi
+  else
+    [ -n "$INSIDE_EMACS" ] && echo true || echo false
+  fi
+}
+
+if [ "$(is_inside_emacs)" = true ]; then
+    emacsclient -q --eval "(split-window)" &> /dev/null
 fi
 
 if [ $(uname) = Darwin ]; then

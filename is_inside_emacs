@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ -n "$TMUX" ]; then
+  client_tty="$(tmux display-message -p '#{client_tty}')"
+  if lsof "$client_tty" | grep -q Emacs; then
+    echo true
+  else
+    echo false
+  fi
+else
+  [ -n "$INSIDE_EMACS" ] && echo true || echo false
+fi
+

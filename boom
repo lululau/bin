@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-local session_names=(logs Java cmd k9s)
+local session_names=(main)
 
 for i in {1..30}; do
     local started_sessions=($(tmux list-sessions -F '#S' 2>/dev/null))

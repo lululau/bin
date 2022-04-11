@@ -1,0 +1,16 @@
+#!/bin/bash
+
+cwd=$HOME
+session=$(echo -n "$1" | perl -pe "s#/\$##;s#\\.#_#g;s#^$HOME#~#")
+
+if [ -n "$2" ]; then
+  cwd=$2
+  cd "$cwd"
+fi
+
+if tmux has -t "$session"; then
+  exec tmux attach -t "$session"
+else
+  exec tmux new -s "$session" -c "$cwd"
+fi
+

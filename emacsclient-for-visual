@@ -1,11 +1,18 @@
 #!/bin/bash
 
+if [ -n "$2" ]; then
+  file=$2
+else
+  file=$1
+fi
+
 if [ "$(uname)" = Darwin ]; then
-  if [ "$(is_inside_emacs)" = true ]; then
+  if [ "$USER" = "root" ]; then
+    sudo -u liuxiang emacsclient --eval "(split-window)" &> /dev/null
+    sudo -u liuxiang emacsclient "/sudo:root@localhost:$file"
+  else
     emacsclient --eval "(split-window)" &> /dev/null
     emacsclient "$@"
-  else
-    emacsclient -s term -t "$@"
   fi
 else
   emacsclient -t "$@"

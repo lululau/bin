@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if uname | grep -qv Darwin; then
+    echo false
+    exit
+fi
+
 if [ -n "$TMUX" ]; then
   client_tty="$(tmux display-message -p '#{client_tty}')"
   if lsof "$client_tty" | grep -q Emacs; then

@@ -15,7 +15,8 @@ IMAGE_PATH_PATTERNS = [
                        /(?<=\[)https?:\/\/\w+\.qpic\.cn[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/segmentfault.com\/img\/[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/camo\.githubusercontent\.com\/[^\]]*(?=\])/,
-                       /(?<=\[)https?:\/\/ask.qcloudimg.com\/[^\]]*(?=\])/
+                       /(?<=\[)https?:\/\/ask.qcloudimg.com\/[^\]]*(?=\])/,
+                       /(?<=\[)https?:\/\/download.huawei.com\/mdl\/image\/download[^\]]*(?=\])/
                       ]
 
 BUFFER_FILE_NAME = ARGV[0]

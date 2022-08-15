@@ -12,11 +12,15 @@ cd ~/.pyenv/versions/3/bin
 cp -Rf python3 python
 cp -Rf pip3 pip
 cd ~/.pyenv/versions/3.9/bin
-cp -Rf python3 python
-cp -Rf pip3 pip
+cp -Rf python3.9 python3
+cp -Rf python3.9 python
+cp -Rf pip3.9 pip3
+cp -Rf pip3.9 pip
 cd ~/.pyenv/versions/3.8/bin
-cp -Rf python3 python
-cp -Rf pip3 pip
+cp -Rf python3.8 python3
+cp -Rf python3.8 python
+cp -Rf pip3.8 pip3
+cp -Rf pip3.8 pip
 
 echo 'pyenv versions updated.'
 

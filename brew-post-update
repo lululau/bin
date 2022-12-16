@@ -33,3 +33,6 @@ echo 'node unlinked and node@14 linked'
 ###################################################################
 ln -nfs /usr/local/Cellar/plantuml/*/libexec/plantuml.jar /usr/local/libexec/plantuml.jar
 echo 'plantuml link updated.'
+
+sudo rm -rf /Applications/Microsoft\ Edge.app/Contents/Resources/zh_*.lproj
+echo 'Microsoft Edge zh_CN, zh_TW removed.'

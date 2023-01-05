@@ -3,19 +3,34 @@
 mkdir -p ~/.pyenv/versions
 ln -nfs /usr/local/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/
 ln -nfs /usr/local/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/2
-ln -nfs /usr/local/Cellar/python@3.10/3*(On[1]) ~/.pyenv/versions/
-ln -nfs /usr/local/Cellar/python@3.10/3*(On[1]) ~/.pyenv/versions/3
+ln -nfs /usr/local/Cellar/python@3.11/3*(On[1]) ~/.pyenv/versions/
+ln -nfs /usr/local/Cellar/python@3.11/3*(On[1]) ~/.pyenv/versions/3
+ln -nfs /usr/local/Cellar/python@3.11/3*(On[1]) ~/.pyenv/versions/3.11
 ln -nfs /usr/local/Cellar/python@3.10/3*(On[1]) ~/.pyenv/versions/3.10
 ln -nfs /usr/local/Cellar/python@3.9/3*(On[1]) ~/.pyenv/versions/3.9
 ln -nfs /usr/local/Cellar/python@3.8/3*(On[1]) ~/.pyenv/versions/3.8
+
 cd ~/.pyenv/versions/3/bin
+cp -Rf python3.11 python3
+cp -Rf python3 python
+cp -Rf pip3.11 pip3
+cp -Rf pip3 pip
+cp -Rf pydoc3.11 pydoc3
+cp -Rf python3.11-config python3-config
+cp -Rf 2to3-3.11 2to3
+cp -Rf idle3.11 idle3
+ln -nfs wheel3.11 wheel3
+
+cd ~/.pyenv/versions/3.10/bin
 cp -Rf python3 python
 cp -Rf pip3 pip
+
 cd ~/.pyenv/versions/3.9/bin
 cp -Rf python3.9 python3
 cp -Rf python3.9 python
 cp -Rf pip3.9 pip3
 cp -Rf pip3.9 pip
+
 cd ~/.pyenv/versions/3.8/bin
 cp -Rf python3.8 python3
 cp -Rf python3.8 python

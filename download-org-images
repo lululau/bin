@@ -16,6 +16,7 @@ IMAGE_PATH_PATTERNS = [
                        /(?<=\[)https?:\/\/segmentfault.com\/img\/[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/camo\.githubusercontent\.com\/[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/ask.qcloudimg.com\/[^\]]*(?=\])/,
+                       /(?<=\[)https?:\/\/.*.googleusercontent.com\/[^\]]*(?=\])/,
                        /(?<=\[)https?:\/\/download.huawei.com\/mdl\/image\/download[^\]]*(?=\])/
                       ]
 

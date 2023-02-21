@@ -22,7 +22,9 @@ cp -Rf idle3.11 idle3
 ln -nfs wheel3.11 wheel3
 
 cd ~/.pyenv/versions/3.10/bin
+cp -Rf python3.10 python3
 cp -Rf python3 python
+cp -Rf pip3.10 pip3
 cp -Rf pip3 pip
 
 cd ~/.pyenv/versions/3.9/bin

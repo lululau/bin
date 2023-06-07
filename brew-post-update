@@ -42,12 +42,6 @@ cp -Rf pip3.8 pip
 echo 'pyenv versions updated.'
 
 ###################################################################
-
-brew unlink node && brew link --overwrite node@14
-echo 'node unlinked and node@14 linked'
-
-
-###################################################################
 ln -nfs /usr/local/Cellar/plantuml/*/libexec/plantuml.jar /usr/local/libexec/plantuml.jar
 echo 'plantuml link updated.'
 

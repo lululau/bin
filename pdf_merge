@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+
+from PyPDF2 import PdfWriter
+
+
+arg_parser = argparse.ArgumentParser(description='Merge PDF files',
+                                     usage='Usage: pdf_merge <file1> <file2> ... -o <output_file>')
+arg_parser.add_argument('-o', '--output', help='Output file name', required=True)
+arg_parser.add_argument('input_files', nargs='+', help='Input files')
+args = arg_parser.parse_args()
+
+merger = PdfWriter()
+
+input_files = args.input_files
+output_file = args.output
+
+for filename in input_files:
+    input_pdf = open(filename, 'rb')
+    outline_name = os.path.basename(filename)
+    outline_name = os.path.splitext(outline_name)[0]
+    merger.append(input_pdf, outline_item=outline_name)
+
+output_pdf = open(output_file, 'wb')
+merger.write(output_pdf)
+merger.close()
+output_pdf.close()

@@ -5,7 +5,7 @@ session=${target%:*}
 window=${target#*:}
 client=$(tmux list-clients -t $session | sed 's/:.*//')
 
-tmux join-pane -t $target
+tmux join-pane -h -t $target
 
 cat <<EOF | osascript
 try
@@ -25,8 +25,8 @@ try
 on error the_error
 end try
 
-tell application "System Events"
-  keystroke "j" using control down
-  keystroke "$window"
-end tell
+# tell application "System Events"
+#   keystroke "j" using control down
+#   keystroke "$window"
+# end tell
 EOF

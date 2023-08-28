@@ -1,0 +1,5 @@
+#!/usr/bin/env zsh
+
+for p ($path) {
+  test -d "$p" && ls -1 "$p" | sed "s/^/${p//\//\\/}\//"
+}

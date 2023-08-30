@@ -39,10 +39,6 @@ cp -Rf python3.8 python
 cp -Rf pip3.8 pip3
 cp -Rf pip3.8 pip
 
-if [ -e /usr/local/Cellar/python@3.11/3.11.4_1 ]; then
-  ln -nfs /usr/local/Cellar/python@3.11/3.11.4_1 /usr/local/Cellar/python@3.11/3.11.4
-fi
-
 echo 'pyenv versions updated.'
 
 ###################################################################

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+autojump -s | sed -n '/^_______/!p; /^_______/q'  | tac | cut -d$'\t' -f2 | fzf

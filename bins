@@ -1,5 +1,13 @@
 #!/usr/bin/env zsh
 
 for p ($path) {
-  test -d "$p" && ls -1 "$p" | sed "s/^/${p//\//\\/}\//"
+  if [[ -d "$p" ]]; then
+    # if symlink
+    if [[ -L "$p" ]]; then
+      local target=$(readlink "$p")
+      ls -1 "$p" | sed "s/^/${p//\//\\/}\//" | sed "s/\$/ -> ${target//\//\\/}/"
+    else
+      ls -1 "$p" | sed "s/^/${p//\//\\/}\//"
+    fi
+  fi
 }

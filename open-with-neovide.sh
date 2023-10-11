@@ -38,4 +38,4 @@ for file in "$@"; do
 done
 
 open -a Neovide
-nvim --server "$server_address" --remote "${full_paths[@]}"
+/usr/local/bin/nvim --server "$server_address" --remote "${full_paths[@]}"

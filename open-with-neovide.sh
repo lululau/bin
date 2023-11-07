@@ -34,6 +34,10 @@ fi
 
 full_paths=()
 for file in "$@"; do
+  if [ ! -e "$file" ]; then
+    mkdir -p "$(dirname "$file")"
+    touch "$file"
+  fi
   full_paths+=("$(realpath "$file")")
 done
 

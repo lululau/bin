@@ -1,6 +1,16 @@
 #!/bin/bash
 
-export PATH=/usr/local/bin:$PATH
+
+if [ -z "$HOMEBREW_PREFIX" ]; then
+  if [ -e "/opt/homebrew/bin/brew" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    HOMEBREW_PREFIX="/usr/local"
+  fi
+fi
+
+
+export PATH=$HOMEBREW_PREFIX/bin:$PATH
 
 if pgrep -q Emacs; then
   if [ "$1" = inbox ]; then

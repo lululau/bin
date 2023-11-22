@@ -1,4 +1,14 @@
 #!/bin/bash
 
+
+if [ -z "$HOMEBREW_PREFIX" ]; then
+  if [ -e "/opt/homebrew/bin/brew" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    HOMEBREW_PREFIX="/usr/local"
+  fi
+fi
+
+
 export LC_CTYPE=en_US.UTF-8
-exec /usr/local/bin/docui "$@"
+exec $HOMEBREW_PREFIX/bin/docui "$@"

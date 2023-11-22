@@ -1,17 +1,25 @@
 #!/usr/bin/env zsh
 
+if [ -z "$HOMEBREW_PREFIX" ]; then
+  if [ -e "/opt/homebrew/bin/brew" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    HOMEBREW_PREFIX="/usr/local"
+  fi
+fi
+
 mkdir -p ~/.pyenv/versions
-ln -nfs /usr/local/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/
-ln -nfs /usr/local/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/2
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/2
 
-ln -nfs /usr/local/Cellar/python@3.12/3*(On[1]) ~/.pyenv/versions/
-ln -nfs /usr/local/Cellar/python@3.12/3*(On[1]) ~/.pyenv/versions/3
-ln -nfs /usr/local/Cellar/python@3.12/3*(On[1]) ~/.pyenv/versions/3.12
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.12/3*(On[1]) ~/.pyenv/versions/
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.12/3*(On[1]) ~/.pyenv/versions/3
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.12/3*(On[1]) ~/.pyenv/versions/3.12
 
-ln -nfs /usr/local/Cellar/python@3.11/3*(On[1]) ~/.pyenv/versions/3.11
-ln -nfs /usr/local/Cellar/python@3.10/3*(On[1]) ~/.pyenv/versions/3.10
-ln -nfs /usr/local/Cellar/python@3.9/3*(On[1]) ~/.pyenv/versions/3.9
-ln -nfs /usr/local/Cellar/python@3.8/3*(On[1]) ~/.pyenv/versions/3.8
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.11/3*(On[1]) ~/.pyenv/versions/3.11
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.10/3*(On[1]) ~/.pyenv/versions/3.10
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.9/3*(On[1]) ~/.pyenv/versions/3.9
+ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.8/3*(On[1]) ~/.pyenv/versions/3.8
 
 cd ~/.pyenv/versions/3/bin
 cp -Rf python3.12 python3
@@ -56,7 +64,7 @@ cp -Rf pip3.8 pip
 echo 'pyenv versions updated.'
 
 ###################################################################
-ln -nfs /usr/local/Cellar/plantuml/*/libexec/plantuml.jar /usr/local/libexec/plantuml.jar
+ln -nfs $HOMEBREW_PREFIX/Cellar/plantuml/*/libexec/plantuml.jar $HOMEBREW_PREFIX/libexec/plantuml.jar
 echo 'plantuml link updated.'
 
 sudo rm -rf /Applications/Microsoft\ Edge.app/Contents/Resources/zh_*.lproj

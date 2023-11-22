@@ -1,3 +1,14 @@
 #!/bin/bash
 
-/usr/local/bin/spring "$@"
+
+if [ -z "$HOMEBREW_PREFIX" ]; then
+  if [ -e "/opt/homebrew/bin/brew" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    HOMEBREW_PREFIX="/usr/local"
+  fi
+fi
+
+
+
+$HOMEBREW_PREFIX/bin/spring "$@"

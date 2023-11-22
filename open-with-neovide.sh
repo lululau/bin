@@ -1,5 +1,13 @@
 #!/bin/bash
 
+if [ -z "$HOMEBREW_PREFIX" ]; then
+  if [ -e "/opt/homebrew/bin/brew" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    HOMEBREW_PREFIX="/usr/local"
+  fi
+fi
+
 ##
 # This script is used to open a file with an existing Neovide instance or a new
 # one if none exists.
@@ -42,4 +50,4 @@ for file in "$@"; do
 done
 
 open -a Neovide
-/usr/local/bin/nvim --server "$server_address" --remote "${full_paths[@]}"
+$HOMEBREW_PREFIX/bin/nvim --server "$server_address" --remote "${full_paths[@]}"

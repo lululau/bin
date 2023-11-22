@@ -31,7 +31,16 @@ EOF
 }
 
 installer() {
-	local target=${1:-/usr/local/bin}
+
+  if [ -z "$HOMEBREW_PREFIX" ]; then
+    if [ -e "/opt/homebrew/bin/brew" ]; then
+      HOMEBREW_PREFIX="/opt/homebrew"
+    else
+      HOMEBREW_PREFIX="/usr/local"
+    fi
+  fi
+
+	local target=${1:-$HOMEBREW_PREFIX/bin}
 
 	cat <<EOF
 #!/bin/bash

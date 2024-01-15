@@ -21,7 +21,10 @@ IO.popen("pandoc --filter=$HOME/.config/pandoc-org-filter.py --columns=120 -f ma
   io.write(input)
   io.close_write
   if output == :PBCOPY
-    IO.popen("/usr/bin/pbcopy", "w") { |f| f.write(io.read) }
+    out = io.read
+    IO.popen("/usr/bin/pbcopy", "w") { |f| f.write(out) }
+    puts out
+    puts "\nCopied to clipboard."
   else
     output.write(io.read)
   end

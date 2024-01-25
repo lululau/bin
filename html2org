@@ -16,4 +16,4 @@ filter() {
   '
 }
 
-pandoc -s -f html -t org -M title="$title" -M date="$date" -M include-before="$include_before" --wrap=none | filter
+pandoc -s -f html -t org -M title="$title" -M date="$date" -M include-before="$include_before" --columns=120 --filter=$HOME/.config/pandoc-org-filter.py

@@ -32,6 +32,12 @@ child_nvim_pid=$(ps -ef | grep $neovide_pid | grep -v 'grep\|Neovide' | awk '{pr
 if [ -z "$child_nvim_pid" ]; then
   echo "Neovide is running, but no child nvim process was found."
   exit 1
+else
+  child_nvim_pid=$(ps -ef | grep $child_nvim_pid | grep -v 'grep\|Neovide\|login' | awk '{print $2}')
+  if [ -z "$child_nvim_pid" ]; then
+    echo "Neovide is running, but no child nvim process was found."
+    exit 1
+  fi
 fi
 
 server_address=$(lsof -p $child_nvim_pid | grep "nvim.$child_nvim_pid" | awk '{print $NF}')

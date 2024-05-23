@@ -6,7 +6,7 @@ if ! git status &> /dev/null; then
 fi
 
 nvim -c '
-  execute "autocmd User NeogitStatusRefreshed nnoremap <buffer> <silent> q :qa!<CR>"
+  execute "autocmd User NeogitStatusRefreshed lua map_q_for_neogit()"
   execute "Neogit"
 '
 

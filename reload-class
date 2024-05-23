@@ -15,7 +15,7 @@ echo -e "\rClass Loader Hash: $class_loader_hash"
 
 echo -n "Copying Class File ..."
 rsync -z "$java_class_file" "$server:$server_dir/"
-echo -e "\rCopying Class File $server:$server_dir/$java_class_file.class Done"
+echo -e "\rCopying Class File to $server:$server_dir/$base_class_name.class Done"
 
 echo "Reloading Class ..."
 ssh $server "docker exec $docker_container as.sh -c 'redefine -c $class_loader_hash $docker_container_dir/$base_class_name.class' $java_pid"

@@ -1,0 +1,60 @@
+#!/bin/zsh
+
+function error() {
+  echo "Error: $1"
+  exit 1
+}
+
+function check_bins() {
+  check_docker
+  check_fzf
+}
+
+function check_docker() {
+  if ! command -v docker &> /dev/null; then
+    error "docker could not be found"
+  fi
+}
+
+function check_fzf() {
+  if ! command -v fzf &> /dev/null; then
+    error "fzf could not be found"
+  fi
+
+  local fzf_version=$(fzf --version)
+  local major_version=$(echo $fzf_version | cut -d'.' -f1)
+  local minor_version=$(echo $fzf_version | cut -d'.' -f2)
+  if [ $major_version = 0 ] && [ $minor_version -lt 53 ]; then
+    error "fzf version must be at least 0.53.0"
+  fi
+}
+
+check_bins
+
+
+current_context=$(docker context show)
+fzf_expect="alt-c,alt-h"
+fzf_header="Current Docker context: $current_context
+alt-c: Containers, alt-h: Home"
+
+choice=$(docker context ls --format '{{if .Current}}* {{else}}  {{end}}{{.Name}}' | fzf --expect="$fzf_expect" --header="$fzf_header")
+
+if [ -z "$choice" ]; then
+  exit 0
+fi
+
+choices=("${(f)choice}")
+expect=$choices[1]
+selection=$choices[2]
+
+
+if [[ "$expect" = "alt-c" ]]; then
+  exec fdkc
+elif [[ "$expect" = "alt-h" ]]; then
+  exec fdk
+elif [[ -n "$selection" ]]; then
+  selection=${selection#\* }
+  selection=${selection#  }
+  docker context use "$selection"
+  exec fdkx
+fi

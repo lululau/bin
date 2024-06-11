@@ -104,7 +104,7 @@ elif [[ -n "$selection" ]]; then
     docker exec -it $container_id /usr/local/bin/as.sh 1
     fdkc $show_all
   elif [[ "$expect" = "alt-l" ]]; then
-    docker exec -it $container_id bash -c '/usr/local/bin/lnav $(find /data/logs -type f -name \"*.log\" -print0 | xargs -0 ls -t | head -n 1)'
+    docker exec -it $container_id bash -c '/usr/local/bin/lnav $(find /data/logs -type f -name "*.log" -print0 | xargs -0 ls -t | head -n 1)'
     fdkc $show_all
   fi
 fi

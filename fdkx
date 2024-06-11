@@ -33,9 +33,9 @@ check_bins
 
 
 current_context=$(docker context show)
-fzf_expect="alt-c,alt-h"
+fzf_expect="alt-i,alt-c,alt-h"
 fzf_header="Current Docker context: $current_context
-alt-c: Containers, alt-h: Home"
+alt-i: Images, alt-c: Containers, alt-h: Home"
 
 choice=$(docker context ls --format '{{if .Current}}* {{else}}  {{end}}{{.Name}}' | fzf --expect="$fzf_expect" --header="$fzf_header")
 
@@ -50,6 +50,8 @@ selection=$choices[2]
 
 if [[ "$expect" = "alt-c" ]]; then
   exec fdkc
+elif [[ "$expect" = "alt-i" ]]; then
+  exec fdki
 elif [[ "$expect" = "alt-h" ]]; then
   exec fdk
 elif [[ -n "$selection" ]]; then

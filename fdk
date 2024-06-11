@@ -44,9 +44,9 @@ current_context=$(docker context show)
 
 fzf_expect="alt-c,alt-i,alt-x"
 
-choice=$(docker system info --format $'alt-i\tImages ({{.Images}} total)
-alt-c\tContainers ({{.Containers}} total, {{.ContainersRunning}} up, {{.ContainersStopped}} down)
-alt-x\tContext '"(${total_contextes} total, current: $(green ${current_context}))" | fzf --ansi --expect=$fzf_expect)
+choice=$({ echo $'alt-x\tContext '"(${total_contextes} total, current: $(green ${current_context}))";
+  docker system info --format $'alt-i\tImages ({{.Images}} total)
+alt-c\tContainers ({{.Containers}} total, {{.ContainersRunning}} up, {{.ContainersStopped}} down)' } | fzf --ansi --expect=$fzf_expect)
 
 choices=("${(f)choice}")
 expect=$choices[1]

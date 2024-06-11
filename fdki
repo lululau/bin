@@ -2,6 +2,12 @@
 
 function error() {
   echo "Error: $1"
+  echo "Press any key to continue..."
+  read -n 1
+}
+
+function fatal() {
+  echo "Error: $1"
   exit 1
 }
 
@@ -13,6 +19,18 @@ function green() {
   echo -e "\033[1;32m$1\033[0m"
 }
 
+function run_command() {
+  local command=$1
+  echo "Running: $command"
+  echo "Press enter to run the command"
+  read -k 1 answer
+  if [ "$answer" = $'\n' ]; then
+    eval $command
+    echo "Press any key to continue..."
+    read -n 1
+  fi
+}
+
 function check_bins() {
   check_docker
   check_fzf
@@ -20,27 +38,37 @@ function check_bins() {
 
 function check_docker() {
   if ! command -v docker &> /dev/null; then
-    error "docker could not be found"
+    fatal "docker could not be found"
   fi
 }
 
 function check_fzf() {
   if ! command -v fzf &> /dev/null; then
-    error "fzf could not be found"
+    fatal "fzf could not be found"
   fi
 
   local fzf_version=$(fzf --version)
   local major_version=$(echo $fzf_version | cut -d'.' -f1)
   local minor_version=$(echo $fzf_version | cut -d'.' -f2)
   if [ $major_version = 0 ] && [ $minor_version -lt 53 ]; then
-    error "fzf version must be at least 0.53.0"
+    fatal "fzf version must be at least 0.53.0"
   fi
 }
 
-fdk_placeholder_widget() {
+function fdk_placeholder_widget() {
   LBUFFER=$FDK_PLACEHOLDER
 }
 zle -N fdk_placeholder_widget
+
+function run_interactivelly() {
+  local prompt=$1
+  FDK_PLACEHOLDER=$2
+  run_interactivelly_result=''
+  vared -i fdk_placeholder_widget -p "$prompt " -c run_interactivelly_result
+  if [ -n "$run_interactivelly_result" ]; then
+    eval "$prompt ${run_interactivelly_result}"
+  fi
+}
 
 
 check_bins
@@ -48,21 +76,21 @@ check_bins
 show_all=$1
 
 if [ "$show_all" = "true" ]; then
-  show_all=$(green "true")
+  show_all_label=$(green "true")
   docker_images_opts="-a"
   fdki_args=false
 else
-  show_all=$(red "false")
+  show_all_label=$(red "false")
   docker_images_opts=""
   fdki_args=true
 fi
 
 
 current_context=$(docker context show)
-fzf_expect="ctrl-r,ctrl-s,ctrl-x,ctrl-a,ctrl-t,space,ctrl-i,alt-r,alt-p,alt-c,alt-x,alt-h"
-fzf_header="Current Docker context: $(green $current_context), Show all: $show_all
+fzf_expect="ctrl-r,ctrl-s,ctrl-x,ctrl-a,ctrl-t,space,ctrl-/,alt-r,alt-p,alt-c,alt-x,alt-h,alt-u"
+fzf_header="Current Docker context: $(green $current_context), Show all: $show_all_label
 ctrl-r: run default, ctrl-s: run default detach, ctrl-x: run custom, ctrl-a: toggle all, ctrl-t: tag
-space: refresh, ctrl-i: inspect, alt-r: remove, alt-p: push
+space: refresh, ctrl-/: inspect, alt-r: remove, alt-p: push, alt-u: prune
 alt-c: Containers, alt-x: Context, alt-h: Home"
 
 choice=$(docker images $docker_images_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header")
@@ -74,6 +102,7 @@ fi
 choices=("${(f)choice}")
 expect=$choices[1]
 selection=$choices[2]
+selections=($choices[2,-1])
 
 if [[ "$expect" = "alt-x" ]]; then
   exec fdkx
@@ -86,38 +115,54 @@ elif [[ -n "$selection" ]]; then
   tag=$(echo $selection | awk '{print $2}')
   image_id=$(echo $selection | awk '{print $3}')
   image_name="$repository:$tag"
+  image_ids=($(echo ${(F)selections} | awk '{print $3}'))
+  image_names=($(echo ${(F)selections} | awk '{print $1":"$2}'))
   if [[ "$expect" = "ctrl-r" ]]; then
-    echo docker run --rm -it $image_name
-    docker run --rm -it $image_name
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one image can be selected for run"
+    else
+      run_command "docker run --rm -it $image_name"
+    fi
+    fdki $show_all
   elif [[ "$expect" = "ctrl-s" ]]; then
-    echo docker run -d $image_name
-    docker run -d $image_name
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one image can be selected for run"
+    else
+      run_command "docker run -d $image_name"
+    fi
+    fdki $show_all
   elif [[ "$expect" = "ctrl-x" ]]; then
-    FDK_PLACEHOLDER="--rm -it $image_name"
-    docker_run_args=''
-    vared -i fdk_placeholder_widget -p "docker run " -c docker_run_args
-    if [ -n "$docker_run_args" ]; then
-      docker run ${(z)docker_run_args}
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one image can be selected for run"
+    else
+      run_interactivelly "docker run" "--rm -it $image_name"
     fi
+    fdki $show_all
   elif [[ "$expect" = "ctrl-t" ]]; then
-    FDK_PLACEHOLDER="$repository:$tag"
-    docker_tag_args=''
-    vared -i fdk_placeholder_widget -p "docker tag $image_name " -c docker_tag_args
-    if [ -n "$docker_tag_args" ]; then
-      docker tag $image_name ${(z)docker_tag_args}
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one image can be selected for tag"
+    else
+      run_interactivelly "docker tag $image_name" "$repository:$tag"
     fi
-  elif [[ "$expect" = "ctrl-i" ]]; then
-    echo docker image inspect $image_name
-    docker image inspect $image_name
+    fdki $show_all
+  elif [[ "$expect" = "ctrl-/" ]]; then
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one image can be selected for inspect"
+    else
+      run_command "docker image inspect $image_name"
+    fi
+    fdki $show_all
+  elif [[ "$expect" = "alt-u" ]]; then
+    run_command "docker image prune"
+    fdki $show_all
   elif [[ "$expect" = "alt-r" ]]; then
-    echo docker image rm $image_name
-    docker image rm $image_name
+    run_command "docker image rm $image_names"
+    fdki $show_all
   elif [[ "$expect" = "alt-p" ]]; then
-    echo docker push $repository:$tag
-    docker push $repository:$tag
+    run_command "docker image push $image_names"
+    fdki $show_all
   fi
 fi
-
 
 if [[ "$expect" = "ctrl-a" ]]; then
   exec fdki $fdki_args

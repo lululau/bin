@@ -76,7 +76,7 @@ enter/ctrl-e: exec, ctrl-a: toggle all, ctrl-k: kill, ctrl-o: stop, ctrl-s: star
 space: refresh, ctrl-/: inspect, alt-r: remove, ctrl-l: logs, alt-j: arthas, alt-l: lnav, alt-u: prune
 alt-i: Images, alt-x: Context, alt-h: Home"
 
-choice=$(docker ps -a $docker_ps_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --multi)
+choice=$(docker ps $docker_ps_opts $docker_ps_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --multi)
 
 if [ -z "$choice" ]; then
   exit 0

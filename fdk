@@ -34,9 +34,10 @@ check_bins
 total_contextes=$(docker context ls --format "{{.Name}}" | wc -l | awk '{print $1}')
 current_context=$(docker context show)
 
-fzf_expect="alt-c,alt-x"
+fzf_expect="alt-c,alt-i,alt-x"
 
-choice=$(docker system info --format $'alt-c\tContainers ({{.Containers}} total, {{.ContainersRunning}} up, {{.ContainersStopped}} down)
+choice=$(docker system info --format $'alt-i\tImages ({{.Images}} total)
+alt-c\tContainers ({{.Containers}} total, {{.ContainersRunning}} up, {{.ContainersStopped}} down)
 alt-x\tContext '"(${total_contextes} total, current: ${current_context})" | fzf --expect=$fzf_expect)
 
 choices=("${(f)choice}")
@@ -45,6 +46,8 @@ selection=$choices[2]
 
 if [[ "$expect" = "alt-c" || -z "$expect" && "$selection" =~ ^alt-c ]]; then
   exec fdkc
+elif [[ "$expect" = "alt-i" || -z "$expect" && "$selection" =~ ^alt-i ]]; then
+  exec fdki
 elif [[ "$expect" = "alt-x" || -z "$expect" && "$selection" =~ ^alt-x ]]; then
   exec fdkx
 fi

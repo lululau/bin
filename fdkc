@@ -5,6 +5,14 @@ function error() {
   exit 1
 }
 
+function red() {
+  echo -e "\033[1;31m$1\033[0m"
+}
+
+function green() {
+  echo -e "\033[1;32m$1\033[0m"
+}
+
 function check_bins() {
   check_docker
   check_fzf
@@ -34,19 +42,21 @@ check_bins
 show_all=$1
 
 if [ "$show_all" = "true" ]; then
+  show_all=$(green "true")
   docker_ps_opts="-a"
   fdkc_args=false
 else
+  show_all=$(red "false")
   docker_ps_opts=""
   fdkc_args=true
 fi
 
 current_context=$(docker context show)
-fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-i,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r"
-fzf_header="Current Docker context: $current_context
+fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-i,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r,alt-i"
+fzf_header="Current Docker context: $(green $current_context), Show all: $show_all
 enter/ctrl-e: exec, ctrl-a: toggle all, ctrl-k: kill, ctrl-o: stop, ctrl-s: start, ctrl-r: restart
 space: refresh, ctrl-i: inspect, alt-r: remove, ctrl-l: logs, alt-j: arthas, alt-l: lnav
-alt-x: Context, alt-h: Home"
+alt-i: Images, alt-x: Context, alt-h: Home"
 
 choice=$(docker ps $docker_ps_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header")
 
@@ -62,15 +72,13 @@ if [[ "$expect" = "alt-x" ]]; then
   exec fdkx
 elif [[ "$expect" = "alt-h" ]]; then
   exec fdk
+elif [[ "$expect" = "alt-i" ]]; then
+  exec fdki
 elif [[ -n "$selection" ]]; then
   container_id=$(echo $selection | awk '{print $1}')
   if [[ "$expect" = "ctrl-e" || "$expect" = "enter" ]]; then
     docker exec -it $container_id /bin/bash
     fdkc $show_all
-  elif [[ "$expect" = "ctrl-a" ]]; then
-    exec fdkc $fdkc_args
-  elif [[ "$expect" = "space" ]]; then
-    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-k" ]]; then
     docker kill $container_id
     fdkc $show_all
@@ -99,4 +107,10 @@ elif [[ -n "$selection" ]]; then
     docker exec -it $container_id bash -c '/usr/local/bin/lnav $(find /data/logs -type f -name \"*.log\" -print0 | xargs -0 ls -t | head -n 1)'
     fdkc $show_all
   fi
+fi
+
+if [[ "$expect" = "ctrl-a" ]]; then
+  exec fdkc $fdkc_args
+elif [[ "$expect" = "space" ]]; then
+  exec fdkc $show_all
 fi

@@ -1,0 +1,126 @@
+#!/bin/zsh
+
+function error() {
+  echo "Error: $1"
+  exit 1
+}
+
+function red() {
+  echo -e "\033[1;31m$1\033[0m"
+}
+
+function green() {
+  echo -e "\033[1;32m$1\033[0m"
+}
+
+function check_bins() {
+  check_docker
+  check_fzf
+}
+
+function check_docker() {
+  if ! command -v docker &> /dev/null; then
+    error "docker could not be found"
+  fi
+}
+
+function check_fzf() {
+  if ! command -v fzf &> /dev/null; then
+    error "fzf could not be found"
+  fi
+
+  local fzf_version=$(fzf --version)
+  local major_version=$(echo $fzf_version | cut -d'.' -f1)
+  local minor_version=$(echo $fzf_version | cut -d'.' -f2)
+  if [ $major_version = 0 ] && [ $minor_version -lt 53 ]; then
+    error "fzf version must be at least 0.53.0"
+  fi
+}
+
+fdk_placeholder_widget() {
+  LBUFFER=$FDK_PLACEHOLDER
+}
+zle -N fdk_placeholder_widget
+
+
+check_bins
+
+show_all=$1
+
+if [ "$show_all" = "true" ]; then
+  show_all=$(green "true")
+  docker_images_opts="-a"
+  fdki_args=false
+else
+  show_all=$(red "false")
+  docker_images_opts=""
+  fdki_args=true
+fi
+
+
+current_context=$(docker context show)
+fzf_expect="ctrl-r,ctrl-s,ctrl-x,ctrl-a,ctrl-t,space,ctrl-i,alt-r,alt-p,alt-c,alt-x,alt-h"
+fzf_header="Current Docker context: $(green $current_context), Show all: $show_all
+ctrl-r: run default, ctrl-s: run default detach, ctrl-x: run custom, ctrl-a: toggle all, ctrl-t: tag
+space: refresh, ctrl-i: inspect, alt-r: remove, alt-p: push
+alt-c: Containers, alt-x: Context, alt-h: Home"
+
+choice=$(docker images $docker_images_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header")
+
+if [ -z "$choice" ]; then
+  exit 0
+fi
+
+choices=("${(f)choice}")
+expect=$choices[1]
+selection=$choices[2]
+
+if [[ "$expect" = "alt-x" ]]; then
+  exec fdkx
+elif [[ "$expect" = "alt-c" ]]; then
+  exec fdkc
+elif [[ "$expect" = "alt-h" ]]; then
+  exec fdk
+elif [[ -n "$selection" ]]; then
+  repository=$(echo $selection | awk '{print $1}')
+  tag=$(echo $selection | awk '{print $2}')
+  image_id=$(echo $selection | awk '{print $3}')
+  image_name="$repository:$tag"
+  if [[ "$expect" = "ctrl-r" ]]; then
+    echo docker run --rm -it $image_name
+    docker run --rm -it $image_name
+  elif [[ "$expect" = "ctrl-s" ]]; then
+    echo docker run -d $image_name
+    docker run -d $image_name
+  elif [[ "$expect" = "ctrl-x" ]]; then
+    FDK_PLACEHOLDER="--rm -it $image_name"
+    docker_run_args=''
+    vared -i fdk_placeholder_widget -p "docker run " -c docker_run_args
+    if [ -n "$docker_run_args" ]; then
+      docker run ${(z)docker_run_args}
+    fi
+  elif [[ "$expect" = "ctrl-t" ]]; then
+    FDK_PLACEHOLDER="$repository:$tag"
+    docker_tag_args=''
+    vared -i fdk_placeholder_widget -p "docker tag $image_name " -c docker_tag_args
+    if [ -n "$docker_tag_args" ]; then
+      docker tag $image_name ${(z)docker_tag_args}
+    fi
+  elif [[ "$expect" = "ctrl-i" ]]; then
+    echo docker image inspect $image_name
+    docker image inspect $image_name
+  elif [[ "$expect" = "alt-r" ]]; then
+    echo docker image rm $image_name
+    docker image rm $image_name
+  elif [[ "$expect" = "alt-p" ]]; then
+    echo docker push $repository:$tag
+    docker push $repository:$tag
+  fi
+fi
+
+
+if [[ "$expect" = "ctrl-a" ]]; then
+  exec fdki $fdki_args
+elif [[ "$expect" = "space" ]]; then
+  exec fdki $show_all
+fi

@@ -5,6 +5,14 @@ function error() {
   exit 1
 }
 
+function red() {
+  echo -e "\033[1;31m$1\033[0m"
+}
+
+function green() {
+  echo -e "\033[1;32m$1\033[0m"
+}
+
 function check_bins() {
   check_docker
   check_fzf
@@ -34,7 +42,7 @@ check_bins
 
 current_context=$(docker context show)
 fzf_expect="alt-i,alt-c,alt-h"
-fzf_header="Current Docker context: $current_context
+fzf_header="Current Docker context: $(green $current_context)
 alt-i: Images, alt-c: Containers, alt-h: Home"
 
 choice=$(docker context ls --format '{{if .Current}}* {{else}}  {{end}}{{.Name}}' | fzf --expect="$fzf_expect" --header="$fzf_header")

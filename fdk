@@ -5,6 +5,14 @@ function error() {
   exit 1
 }
 
+function red() {
+  echo -e "\033[1;31m$1\033[0m"
+}
+
+function green() {
+  echo -e "\033[1;32m$1\033[0m"
+}
+
 function check_bins() {
   check_docker
   check_fzf
@@ -38,7 +46,7 @@ fzf_expect="alt-c,alt-i,alt-x"
 
 choice=$(docker system info --format $'alt-i\tImages ({{.Images}} total)
 alt-c\tContainers ({{.Containers}} total, {{.ContainersRunning}} up, {{.ContainersStopped}} down)
-alt-x\tContext '"(${total_contextes} total, current: ${current_context})" | fzf --expect=$fzf_expect)
+alt-x\tContext '"(${total_contextes} total, current: $(green ${current_context}))" | fzf --ansi --expect=$fzf_expect)
 
 choices=("${(f)choice}")
 expect=$choices[1]

@@ -127,41 +127,41 @@ elif [[ -n "$selection" ]]; then
     else
       run_command "docker run --rm -it $image_name"
     fi
-    fdki $show_all
+    exec fdki $show_all
   elif [[ "$expect" = "ctrl-s" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one image can be selected for run"
     else
       run_command "docker run -d $image_name"
     fi
-    fdki $show_all
+    exec fdki $show_all
   elif [[ "$expect" = "ctrl-x" || "$expect" = "enter" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one image can be selected for run"
     else
       run_interactivelly "docker run" "--rm -it $image_name"
     fi
-    fdki $show_all
+    exec fdki $show_all
   elif [[ "$expect" = "ctrl-t" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one image can be selected for tag"
     else
       run_interactivelly "docker tag $image_name" "$repository:$tag"
     fi
-    fdki $show_all
+    exec fdki $show_all
   elif [[ "$expect" = "ctrl-/" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one image can be selected for inspect"
     else
       run_command "docker image inspect $image_name"
     fi
-    fdki $show_all
+    exec fdki $show_all
   elif [[ "$expect" = "alt-r" ]]; then
     run_command "docker image rm $image_names"
-    fdki $show_all
+    exec fdki $show_all
   elif [[ "$expect" = "alt-p" ]]; then
     run_command "docker image push $image_names"
-    fdki $show_all
+    exec fdki $show_all
   fi
 fi
 
@@ -171,7 +171,7 @@ elif [[ "$expect" = "space" ]]; then
   exec fdki $show_all
 elif [[ "$expect" = "alt-u" ]]; then
   run_command "docker image prune"
-  fdki $show_all
+  exec fdki $show_all
 else
-  fdki $show_all
+  exec fdki $show_all
 fi

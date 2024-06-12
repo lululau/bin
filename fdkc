@@ -107,53 +107,53 @@ elif [[ -n "$selection" ]]; then
     else
       docker exec -it $container_id /bin/bash
     fi
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-k" ]]; then
     run_command "docker kill ${container_ids}"
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-o" ]]; then
     run_command "docker stop ${container_ids}"
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-s" ]]; then
     run_command "docker start ${container_ids}"
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-r" ]]; then
     run_command "docker restart ${container_ids}"
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-/" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one container can be selected for inspect"
     else
       docker inspect $container_id | bat -l json
     fi
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "alt-r" ]]; then
     run_command "docker rm ${container_ids}"
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-x" ]]; then
     run_command "docker rm --force ${container_ids}"
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "ctrl-l" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one container can be selected for logs"
     else
       docker logs -f $container_id
     fi
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "alt-j" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one container can be selected for arthas"
     else
       docker exec -it $container_id /usr/local/bin/as.sh 1
     fi
-    fdkc $show_all
+    exec fdkc $show_all
   elif [[ "$expect" = "alt-l" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one container can be selected for lnav"
     else
       docker exec -it $container_id bash -c '/usr/local/bin/lnav $(find /data/logs -type f -name "*.log" -print0 | xargs -0 ls -t | head -n 1)'
     fi
-    fdkc $show_all
+    exec fdkc $show_all
   fi
 fi
 
@@ -163,7 +163,7 @@ elif [[ "$expect" = "space" ]]; then
   exec fdkc $show_all
 elif [[ "$expect" = "alt-u" ]]; then
   run_command "docker container prune"
-  fdkc $show_all
+  exec fdkc $show_all
 else
-  fdkc $show_all
+  exec fdkc $show_all
 fi

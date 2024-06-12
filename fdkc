@@ -140,9 +140,6 @@ elif [[ -n "$selection" ]]; then
       docker logs -f $container_id
     fi
     fdkc $show_all
-  elif [[ "$expect" = "alt-u" ]]; then
-    run_command "docker container prune"
-    fdkc $show_all
   elif [[ "$expect" = "alt-j" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one container can be selected for arthas"
@@ -164,4 +161,9 @@ if [[ "$expect" = "ctrl-a" ]]; then
   exec fdkc $fdkc_args
 elif [[ "$expect" = "space" ]]; then
   exec fdkc $show_all
+elif [[ "$expect" = "alt-u" ]]; then
+  run_command "docker container prune"
+  fdkc $show_all
+else
+  fdkc $show_all
 fi

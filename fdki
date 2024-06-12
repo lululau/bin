@@ -156,9 +156,6 @@ elif [[ -n "$selection" ]]; then
       run_command "docker image inspect $image_name"
     fi
     fdki $show_all
-  elif [[ "$expect" = "alt-u" ]]; then
-    run_command "docker image prune"
-    fdki $show_all
   elif [[ "$expect" = "alt-r" ]]; then
     run_command "docker image rm $image_names"
     fdki $show_all
@@ -172,4 +169,9 @@ if [[ "$expect" = "ctrl-a" ]]; then
   exec fdki $fdki_args
 elif [[ "$expect" = "space" ]]; then
   exec fdki $show_all
+elif [[ "$expect" = "alt-u" ]]; then
+  run_command "docker image prune"
+  fdki $show_all
+else
+  fdki $show_all
 fi

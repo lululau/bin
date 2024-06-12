@@ -74,10 +74,10 @@ else
 fi
 
 current_context=$(docker context show)
-fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-/,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r,alt-i,alt-u"
+fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-/,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r,ctrl-x,alt-i,alt-u"
 fzf_header=$'\nCurrent Docker context: '"$(green $current_context),"$'\t'"Show all: $show_all_label"$'\n'\
-$'enter/ctrl-e: exec,\tctrl-a: toggle all,\tctrl-k: kill,\tctrl-o: stop,\tctrl-s: start,\tctrl-r: restart\n'\
-$'space: refresh,\t\tctrl-/: inspect,\talt-r: remove,\tctrl-l: logs,\talt-j: arthas,\talt-l: lnav,\talt-u: prune\n'\
+$'enter/ctrl-e: exec,\tctrl-a: toggle all,\tctrl-k: kill,\t\tctrl-o: stop,\tctrl-s: start,\tctrl-r: restart\tspace: refresh\n'\
+$'ctrl-/: inspect,\talt-r: remove,\t\tctrl-x: force remove,\tctrl-l: logs,\talt-j: arthas,\talt-l: lnav,\talt-u: prune\n'\
 $(yellow $'alt-i: Images,\t\talt-x: Context,\t\talt-h: Home')
 
 choice=$(docker ps $docker_ps_opts $docker_ps_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --header-first --multi)
@@ -129,6 +129,9 @@ elif [[ -n "$selection" ]]; then
     fdkc $show_all
   elif [[ "$expect" = "alt-r" ]]; then
     run_command "docker rm ${container_ids}"
+    fdkc $show_all
+  elif [[ "$expect" = "ctrl-x" ]]; then
+    run_command "docker rm --force ${container_ids}"
     fdkc $show_all
   elif [[ "$expect" = "ctrl-l" ]]; then
     if [[ $#selections -gt 1 ]]; then

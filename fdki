@@ -19,6 +19,10 @@ function green() {
   echo -e "\033[1;32m$1\033[0m"
 }
 
+function yellow() {
+  echo -e "\033[1;33m$1\033[0m"
+}
+
 function run_command() {
   local command=$1
   echo "Running: $command"
@@ -87,13 +91,13 @@ fi
 
 
 current_context=$(docker context show)
-fzf_expect="ctrl-r,ctrl-s,ctrl-x,ctrl-a,ctrl-t,space,ctrl-/,alt-r,alt-p,alt-c,alt-x,alt-h,alt-u"
-fzf_header="Current Docker context: $(green $current_context), Show all: $show_all_label
-ctrl-r: run default, ctrl-s: run default detach, ctrl-x: run custom, ctrl-a: toggle all, ctrl-t: tag
-space: refresh, ctrl-/: inspect, alt-r: remove, alt-p: push, alt-u: prune
-alt-c: Containers, alt-x: Context, alt-h: Home"
+fzf_expect="enter,ctrl-r,ctrl-s,ctrl-x,ctrl-a,ctrl-t,space,ctrl-/,alt-r,alt-p,alt-c,alt-x,alt-h,alt-u"
+fzf_header=$'\n'"Current Docker context: $(green $current_context), Show all: $show_all_label"$'\n'\
+$'ctrl-r: run default,\tctrl-s: detach run,\tenter/ctrl-x: custom run,\tctrl-a: toggle all,\tctrl-t: tag\n'\
+$'space: refresh,\t\tctrl-/: inspect,\talt-r: remove,\t\t\talt-p: push,\t\talt-u: prune\n'\
+$(yellow $'alt-c: Containers,\talt-x: Context,\t\talt-h: Home\n')
 
-choice=$(docker images $docker_images_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header")
+choice=$(docker images $docker_images_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --header-first)
 
 if [ -z "$choice" ]; then
   exit 0
@@ -131,7 +135,7 @@ elif [[ -n "$selection" ]]; then
       run_command "docker run -d $image_name"
     fi
     fdki $show_all
-  elif [[ "$expect" = "ctrl-x" ]]; then
+  elif [[ "$expect" = "ctrl-x" || "$expect" = "enter" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one image can be selected for run"
     else

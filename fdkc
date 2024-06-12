@@ -19,6 +19,10 @@ function green() {
   echo -e "\033[1;32m$1\033[0m"
 }
 
+function yellow() {
+  echo -e "\033[1;33m$1\033[0m"
+}
+
 function run_command() {
   local command=$1
   echo "Running: $command"
@@ -71,12 +75,12 @@ fi
 
 current_context=$(docker context show)
 fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-/,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r,alt-i,alt-u"
-fzf_header="Current Docker context: $(green $current_context), Show all: $show_all_label
-enter/ctrl-e: exec, ctrl-a: toggle all, ctrl-k: kill, ctrl-o: stop, ctrl-s: start, ctrl-r: restart
-space: refresh, ctrl-/: inspect, alt-r: remove, ctrl-l: logs, alt-j: arthas, alt-l: lnav, alt-u: prune
-alt-i: Images, alt-x: Context, alt-h: Home"
+fzf_header=$'\nCurrent Docker context: '"$(green $current_context),"$'\t'"Show all: $show_all_label"$'\n'\
+$'enter/ctrl-e: exec,\tctrl-a: toggle all,\tctrl-k: kill,\tctrl-o: stop,\tctrl-s: start,\tctrl-r: restart\n'\
+$'space: refresh,\t\tctrl-/: inspect,\talt-r: remove,\tctrl-l: logs,\talt-j: arthas,\talt-l: lnav,\talt-u: prune\n'\
+$(yellow $'alt-i: Images,\t\talt-x: Context,\t\talt-h: Home')
 
-choice=$(docker ps $docker_ps_opts $docker_ps_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --multi)
+choice=$(docker ps $docker_ps_opts $docker_ps_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --header-first --multi)
 
 if [ -z "$choice" ]; then
   exit 0

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
+
+# raw_loation: org.jeecg.modules.tuan.pingtaituan.caculate.TuanCaculateService.getPayAndTransferTypes(TuanCaculateService.java:353)
+raw_location=$1
+
+class=$(echo "$raw_location" | grep -o -E '.+\.[A-Z][A-Za-z0-9_]*')
+line_num=$(echo "$raw_location" | grep -o -E ':[0-9]+) *$' | grep -o -E '[0-9]+')
+
+echo -n "$class:$line_num" | pbcopy
+terminal-notifier -title 'Java Class Location Copied!' -message "$class:$line_num"
+open -a 'IntelliJ IDEA'

@@ -119,8 +119,11 @@ elif [[ -n "$selection" ]]; then
   tag=$(echo $selection | awk '{print $2}')
   image_id=$(echo $selection | awk '{print $3}')
   image_name="$repository:$tag"
+  if [[ "$repository" = "<none>" || "$tag" = "<none>" ]]; then
+    image_name=$image_id
+  fi
   image_ids=($(echo ${(F)selections} | awk '{print $3}'))
-  image_names=($(echo ${(F)selections} | awk '{print $1":"$2}'))
+  image_names=($(echo ${(F)selections} | awk '{if ($1 != "<none>" && $2 != "<none>") print $1":"$2; else print $3}'))
   if [[ "$expect" = "ctrl-r" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one image can be selected for run"

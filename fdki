@@ -68,7 +68,7 @@ function run_interactivelly() {
   local prompt=$1
   FDK_PLACEHOLDER=$2
   run_interactivelly_result=''
-  vared -i fdk_placeholder_widget -p "$prompt " -c run_interactivelly_result
+  vared -i fdk_placeholder_widget -M emacs -p "$prompt " -c run_interactivelly_result
   if [ -n "$run_interactivelly_result" ]; then
     eval "$prompt ${run_interactivelly_result}"
   fi

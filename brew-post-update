@@ -95,7 +95,7 @@ ln -nfs $HOMEBREW_PREFIX/Cellar/plantuml/*/libexec/plantuml.jar $HOMEBREW_PREFIX
 echo "\nplantuml link updated."
 ls -l $HOMEBREW_PREFIX/libexec/plantuml.jar | sed 's/^/  /'
 
-if [ -e /Applications/Microsoft\ Edge.app/Contents/Resources/zh_CN.lproj ]; then
-  sudo rm -rf /Applications/Microsoft\ Edge.app/Contents/Resources/zh_*.lproj
-  echo "\nMicrosoft Edge zh_CN, zh_TW removed."
-fi
+# if [ -e /Applications/Microsoft\ Edge.app/Contents/Resources/zh_CN.lproj ]; then
+#   sudo rm -rf /Applications/Microsoft\ Edge.app/Contents/Resources/zh_*.lproj
+#   echo "\nMicrosoft Edge zh_CN, zh_TW removed."
+# fi

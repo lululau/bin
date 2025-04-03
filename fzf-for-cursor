@@ -6,8 +6,5 @@ if [ -n "$copied_path" -a -e "$copied_path" ]; then
     echo -n | pbcopy
     dir=$(dirname "$copied_path")
     cd "$dir"
-    fzf --bind 'enter:become:cursor {1}'
-else
-    fzf --bind 'enter:become:cursor {1}'
 fi
-exit 0
+exec bash -c "fzf --bind 'enter:become:cursor {1}'; exit 0"

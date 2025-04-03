@@ -2,7 +2,8 @@
 
 word=$(pbpaste)
 
-RELOAD='reload:rg --column --color=always --smart-case {q} || :'
+# RELOAD='reload:rg --column --color=always --smart-case {q} || :'
+RELOAD='reload:rg --column --color=always --smart-case $(echo {q}) || :'
 OPENER='cursor -g {1}:{2}'
 fzf --disabled --ansi --multi \
     --bind "start:$RELOAD" --bind "change:$RELOAD" \

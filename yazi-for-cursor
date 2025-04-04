@@ -1,9 +1,0 @@
-#!/bin/bash
-
-copied_path=$(pbpaste)
-if [ -n "$copied_path" -a -e "$copied_path" ]; then
-  echo -n | pbcopy
-  exec yazi "$copied_path"
-else
-  exec yazi
-fi

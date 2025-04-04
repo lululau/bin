@@ -1,9 +1,14 @@
 #!/bin/bash
 
-word=$(pbpaste)
+pattern=$1
+file_limit=''
+if [ -n "$2" ]; then
+    file_limit="-g '$2'"
+fi
+
 
 # RELOAD='reload:rg --column --color=always --smart-case {q} || :'
-RELOAD='reload:rg --column --color=always --smart-case $(echo {q}) || :'
+RELOAD="reload:rg $file_limit --column --color=always --smart-case \$(echo {q}) || :"
 OPENER='cursor -g {1}:{2}'
 fzf --disabled --ansi --multi \
     --bind "start:$RELOAD" --bind "change:$RELOAD" \
@@ -13,5 +18,5 @@ fzf --disabled --ansi --multi \
     --delimiter : \
     --preview 'bat --style=full --color=always --highlight-line {2} {1}' \
     --preview-window '~4,+{2}+4/3,<80(up)' \
-    --query "$word"
+    --query "$pattern"
 exit 0

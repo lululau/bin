@@ -1,0 +1,9 @@
+#!/bin/bash
+
+fd | fzf \
+    --bind 'enter:become:cursor {1}' \
+    --bind 'ctrl-a:reload:fd -u' \
+    --bind 'ctrl-h:reload:fd' \
+    --header $'Enter: Open,\t Ctrl-a: Show All,\t Ctrl-h: Hide Hidden Files'
+
+exit 0

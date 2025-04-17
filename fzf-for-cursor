@@ -2,8 +2,8 @@
 
 fd | fzf \
     --bind 'enter:become:cursor {1}' \
-    --bind 'ctrl-a:reload:fd -u' \
-    --bind 'ctrl-h:reload:fd' \
-    --header $'Enter: Open,\t Ctrl-a: Show All,\t Ctrl-h: Hide Hidden Files'
+    --bind 'alt-a:reload:fd -u' \
+    --bind 'alt-h:reload:fd' \
+    --header $'Enter: Open,\t Alt-a: Show All,\t Alt-h: Hide Hidden Files'
 
 exit 0

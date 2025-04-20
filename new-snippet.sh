@@ -217,11 +217,21 @@ uid=$(uuidgen)
 
 snippet_file="$snippet_dir/$snippet_name [$uid].json"
 
-# Get snippet content from second argument or stdin
+# Get snippet content from second argument or open nvim for editing
 if [ -n "$2" ]; then
     snippet_content="$2"
 else
-    snippet_content=$(cat)
+    # Create a temporary file for editing
+    temp_file=$(mktemp)
+    
+    # Open nvim for editing
+    nvim "$temp_file"
+    
+    # Read the content from temp file
+    snippet_content=$(<"$temp_file")
+    
+    # Remove the temporary file
+    rm "$temp_file"
 fi
 
 if [ -z "$snippet_content" ]; then

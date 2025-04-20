@@ -181,10 +181,12 @@ fi
 
 # Regular snippet creation mode
 if [ -z "$1" ]; then
-    echo "Usage: $0 [-l [filter] | -c] <category>/<snippet-name>"
+    echo "Usage: $0 [-l [filter] | -c] <category>/<snippet-name> [content]"
     echo "  -l: List existing snippets, optionally filtered by the given string"
     echo "  -c: List all categories"
+    echo "  If content is not provided as argument, it will be read from stdin"
     echo "  Example: $0 coding/bash-loop"
+    echo "  Example: $0 coding/bash-loop 'for i in \"\$@\"; do'"
     exit 1
 fi
 
@@ -215,7 +217,12 @@ uid=$(uuidgen)
 
 snippet_file="$snippet_dir/$snippet_name [$uid].json"
 
-snippet_content=$(cat)
+# Get snippet content from second argument or stdin
+if [ -n "$2" ]; then
+    snippet_content="$2"
+else
+    snippet_content=$(cat)
+fi
 
 if [ -z "$snippet_content" ]; then
     echo "Error: No snippet content provided"

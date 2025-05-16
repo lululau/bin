@@ -2,11 +2,7 @@
 
 open -a Emacs
 
-script_dir=$(cd $(dirname $0); pwd)
-source "$script_dir/project-root.sh"
-file_path=$2
-project_root=$(cd "$(dirname "$file_path")"; project_root .)
-project_root=${project_root/#\/\//\/}/
+project_root=$(git rev-parse --show-toplevel 2> /dev/null)
 
 cd "$project_root"
 

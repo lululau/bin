@@ -2,6 +2,10 @@
 
 open -a Emacs
 
+filename=$2
+
+cd $(dirname "$filename")
+
 project_root=$(git rev-parse --show-toplevel 2> /dev/null)
 
 cd "$project_root"

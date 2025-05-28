@@ -7,7 +7,7 @@ if [ -n "$2" ]; then
 fi
 
 
-# RELOAD='reload:rg --column --color=always --smart-case {q} || :'
+# RELOAD='reload:rg $file_limit --column --color=always --smart-case {q} || :'
 RELOAD="reload:rg $file_limit --column --color=always --smart-case \$(echo {q}) || :"
 OPENER='cursor -g {1}:{2}'
 fzf --disabled --ansi --multi \

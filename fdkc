@@ -124,7 +124,7 @@ elif [[ -n "$selection" ]]; then
     if [[ $#selections -gt 1 ]]; then
       error "Only one container can be selected for inspect"
     else
-      docker inspect $container_id | bat -l json
+      docker inspect $container_id | nvim -R -
     fi
     exec fdkc $show_all
   elif [[ "$expect" = "alt-r" ]]; then

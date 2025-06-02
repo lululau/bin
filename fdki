@@ -91,11 +91,11 @@ fi
 
 
 current_context=$(docker context show)
-fzf_expect="enter,ctrl-r,ctrl-s,ctrl-x,ctrl-a,ctrl-t,space,ctrl-/,alt-r,alt-p,alt-c,alt-x,alt-h,alt-u"
+fzf_expect="enter,ctrl-r,ctrl-s,ctrl-x,ctrl-a,ctrl-t,space,ctrl-/,alt-r,alt-p,alt-c,alt-v,alt-n,alt-x,alt-h,alt-u"
 fzf_header=$'\n'"Current Docker context: $(green $current_context), Show all: $show_all_label"$'\n'\
 $'ctrl-r: run default,\tctrl-s: detach run,\tenter/ctrl-x: custom run,\tctrl-a: toggle all,\tctrl-t: tag\n'\
 $'space: refresh,\t\tctrl-/: inspect,\talt-r: remove,\t\t\talt-p: push,\t\talt-u: prune\n'\
-$(yellow $'alt-c: Containers,\talt-x: Context,\t\talt-h: Home\n')
+$(yellow $'alt-c: Containers,\talt-v: Volumes,\talt-n: Networks,\talt-x: Context,\t\talt-h: Home\n')
 
 choice=$(docker images $docker_images_opts | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --header-first)
 
@@ -112,6 +112,10 @@ if [[ "$expect" = "alt-x" ]]; then
   exec fdkx
 elif [[ "$expect" = "alt-c" ]]; then
   exec fdkc
+elif [[ "$expect" = "alt-v" ]]; then
+  exec fdkv
+elif [[ "$expect" = "alt-n" ]]; then
+  exec fdkn
 elif [[ "$expect" = "alt-h" ]]; then
   exec fdk
 elif [[ -n "$selection" ]]; then

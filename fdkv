@@ -73,10 +73,11 @@ else
 fi
 
 current_context=$(docker context show)
-fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-/,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r,ctrl-x,alt-i,alt-u,alt-c"
+fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-/,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r,ctrl-x,alt-i,alt-u,alt-c,alt-n"
 fzf_header=$'\nCurrent Docker context: '"$(green $current_context),"$'\t'"Show all: $show_all_label"$'\n'\
 $'enter/ctrl-e: inspect,\tctrl-a: toggle all,\tctrl-/: inspect json,\tspace: refresh,\talt-r: remove,\tctrl-x: force remove\n'\
-$'alt-u: prune,\t\talt-c: create,\t\talt-i: Images,\t\talt-x: Context,\t\talt-h: Home,\t\talt-l: list usage'
+$'alt-u: prune,\t\talt-c: create,\t\talt-i: Images,\t\talt-x: Context,\t\talt-h: Home,\t\talt-l: list usage\n'\
+$(yellow $'alt-i: Images,\t\talt-c: Containers,\t\talt-x: Context,\t\talt-h: Home,\t\talt-n: Networks')
 
 choice=$(docker volume ls | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --header-first --multi)
 
@@ -96,6 +97,8 @@ elif [[ "$expect" = "alt-h" ]]; then
   exec fdk
 elif [[ "$expect" = "alt-i" ]]; then
   exec fdki
+elif [[ "$expect" = "alt-n" ]]; then
+  exec fdkn
 elif [[ "$expect" = "alt-c" ]]; then
   echo "Enter volume name:"
   read volume_name

@@ -73,10 +73,12 @@ else
 fi
 
 current_context=$(docker context show)
-fzf_expect="enter,ctrl-e,ctrl-a,space,ctrl-/,alt-r,ctrl-x,alt-i,alt-h,alt-u,alt-c,alt-l,alt-d,alt-s"
+fzf_expect="enter,ctrl-e,ctrl-a,space,ctrl-/,alt-r,ctrl-x,alt-i,alt-h,alt-u,alt-c,alt-l,alt-d,alt-s,alt-v"
 fzf_header=$'\nCurrent Docker context: '"$(green $current_context),"$'\t'"Show all: $show_all_label"$'\n'\
 $'enter/ctrl-e: inspect,\tctrl-a: toggle all,\tctrl-/: inspect json,\tspace: refresh,\talt-r: remove,\tctrl-x: force remove\n'\
-$'alt-u: prune,\t\talt-c: create,\t\talt-l: list containers,\talt-d: disconnect,\talt-s: connect,\talt-i: Images,\talt-h: Home'
+$'alt-u: prune,\t\talt-c: create,\t\talt-l: list containers,\talt-d: disconnect,\talt-s: connect\n'\
+$(yellow $'alt-i: Images,\t\talt-v: Volumes,\t\talt-c: Containers,\t\talt-x: Context,\t\talt-h: Home')
+
 
 choice=$(docker network ls | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --header-first --multi)
 
@@ -94,6 +96,8 @@ if [[ "$expect" = "alt-h" ]]; then
   exec fdk
 elif [[ "$expect" = "alt-i" ]]; then
   exec fdki
+elif [[ "$expect" = "alt-v" ]]; then
+  exec fdkv
 elif [[ "$expect" = "alt-c" ]]; then
   echo "Enter network name:"
   read network_name

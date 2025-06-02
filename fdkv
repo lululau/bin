@@ -1,0 +1,151 @@
+#!/bin/zsh
+
+function error() {
+  echo "Error: $1"
+  echo "Press any key to continue..."
+  read -n 1
+}
+
+function fatal() {
+  echo "Error: $1"
+  exit 1
+}
+
+function red() {
+  echo -e "\033[1;31m$1\033[0m"
+}
+
+function green() {
+  echo -e "\033[1;32m$1\033[0m"
+}
+
+function yellow() {
+  echo -e "\033[1;33m$1\033[0m"
+}
+
+function run_command() {
+  local command=$1
+  echo "Running: $command"
+  echo "Press enter to run the command"
+  read -k 1 answer
+  if [ "$answer" = $'\n' ]; then
+    eval $command
+    echo "Press any key to continue..."
+    read -n 1
+  fi
+}
+
+function check_bins() {
+  check_docker
+  check_fzf
+}
+
+function check_docker() {
+  if ! command -v docker &> /dev/null; then
+    fatal "docker could not be found"
+  fi
+}
+
+function check_fzf() {
+  if ! command -v fzf &> /dev/null; then
+    fatal "fzf could not be found"
+  fi
+
+  local fzf_version=$(fzf --version)
+  local major_version=$(echo $fzf_version | cut -d'.' -f1)
+  local minor_version=$(echo $fzf_version | cut -d'.' -f2)
+  if [ $major_version = 0 ] && [ $minor_version -lt 53 ]; then
+    fatal "fzf version must be at least 0.53.0"
+  fi
+}
+
+check_bins
+
+show_all=$1
+
+if [ "$show_all" = "true" ]; then
+  show_all_label=$(green "true")
+  # For volumes, we always show all since there's no running/stopped state
+  fdkv_args=false
+else
+  show_all_label=$(red "false")
+  fdkv_args=true
+fi
+
+current_context=$(docker context show)
+fzf_expect="enter,ctrl-e,ctrl-a,ctrl-k,ctrl-o,ctrl-s,ctrl-r,space,ctrl-/,ctrl-l,alt-j,alt-l,alt-x,alt-h,alt-r,ctrl-x,alt-i,alt-u,alt-c"
+fzf_header=$'\nCurrent Docker context: '"$(green $current_context),"$'\t'"Show all: $show_all_label"$'\n'\
+$'enter/ctrl-e: inspect,\tctrl-a: toggle all,\tctrl-/: inspect json,\tspace: refresh,\talt-r: remove,\tctrl-x: force remove\n'\
+$'alt-u: prune,\t\talt-c: create,\t\talt-i: Images,\t\talt-x: Context,\t\talt-h: Home,\t\talt-l: list usage'
+
+choice=$(docker volume ls | tail -n +2 | fzf --expect="$fzf_expect" --header="$fzf_header" --header-first --multi)
+
+if [ -z "$choice" ]; then
+  exit 0
+fi
+
+choices=("${(f)choice}")
+
+expect=$choices[1]
+selection=$choices[2]
+selections=($choices[2,-1])
+
+if [[ "$expect" = "alt-x" ]]; then
+  exec fdkx
+elif [[ "$expect" = "alt-h" ]]; then
+  exec fdk
+elif [[ "$expect" = "alt-i" ]]; then
+  exec fdki
+elif [[ "$expect" = "alt-c" ]]; then
+  echo "Enter volume name:"
+  read volume_name
+  if [[ -n "$volume_name" ]]; then
+    run_command "docker volume create $volume_name"
+  fi
+  exec fdkv $show_all
+elif [[ -n "$selection" ]]; then
+  volume_name=$(echo $selection | awk '{print $2}')
+  volume_names=($(echo ${(F)selections} | awk '{print $2}'))
+  if [[ "$expect" = "ctrl-e" || "$expect" = "enter" ]]; then
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one volume can be selected for inspect"
+    else
+      docker volume inspect $volume_name | nvim -R -
+    fi
+    exec fdkv $show_all
+  elif [[ "$expect" = "ctrl-/" ]]; then
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one volume can be selected for inspect"
+    else
+      docker volume inspect $volume_name | jq . | nvim -R -
+    fi
+    exec fdkv $show_all
+  elif [[ "$expect" = "alt-r" ]]; then
+    run_command "docker volume rm ${volume_names}"
+    exec fdkv $show_all
+  elif [[ "$expect" = "ctrl-x" ]]; then
+    run_command "docker volume rm --force ${volume_names}"
+    exec fdkv $show_all
+  elif [[ "$expect" = "alt-l" ]]; then
+    if [[ $#selections -gt 1 ]]; then
+      error "Only one volume can be selected for usage info"
+    else
+      echo "Volume usage information:"
+      docker system df -v | grep -A 20 "Local Volumes:" | grep $volume_name || echo "No usage information found"
+      echo "Press any key to continue..."
+      read -n 1
+    fi
+    exec fdkv $show_all
+  fi
+fi
+
+if [[ "$expect" = "ctrl-a" ]]; then
+  exec fdkv $fdkv_args
+elif [[ "$expect" = "space" ]]; then
+  exec fdkv $show_all
+elif [[ "$expect" = "alt-u" ]]; then
+  run_command "docker volume prune"
+  exec fdkv $show_all
+else
+  exec fdkv $show_all
+fi 

@@ -6,5 +6,10 @@ if echo "$file_type" | grep -q 'image\|video\|audio'; then
 else
   # vim "$1"
   clear
-  bat --pager='less --RAW-CONTROL-CHARS --no-init -R' "$1"
+  # bat --pager='less --RAW-CONTROL-CHARS --no-init -R' "$1"
+
+  # Allow nobody execute nvim:
+  #   sudo echo 'nobody ALL=(liuxiang) NOPASSWD: /usr/local/bin/nvim' >> 03_nobody_nvim_for_mitmproxy
+  #   sudo echo 'nobody ALL=(liuxiang) NOPASSWD: /opt/homebrew/bin/nvim' >> 03_nobody_nvim_for_mitmproxy
+  cat "$1" | sudo -u liuxiang nvim +Man!
 fi

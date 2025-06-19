@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# 用法: pstree <PID>
+# 兼容 macOS 和 Linux
+
+set -e
+
+if [ -z "$1" ]; then
+  echo "用法: $0 <PID>"
+  exit 1
+fi
+
+TARGET_PID="$1"
+
+# 检查 ps 兼容性
+if ps -p $$ -o ppid= >/dev/null 2>&1; then
+  PS_CMD="ps"
+else
+  echo "不支持的 ps 版本"
+  exit 1
+fi
+
+# 获取进程信息: PID, PPID, CMD
+get_proc_info() {
+  # $1: PID
+  $PS_CMD -p "$1" -o pid= -o ppid= -o args= | awk '{pid=$1; ppid=$2; $1=""; $2=""; sub(/^  */, ""); printf "%s • %s • %s\n", pid, ppid, $0}'
+}
+
+# 获取祖先链（从 root 到目标进程）
+get_ancestors() {
+  local pid="$1"
+  local ancestors=()
+  while [ "$pid" != "1" ] && [ -n "$pid" ]; do
+    ancestors=("$pid" "${ancestors[@]}")
+    pid=$($PS_CMD -p "$pid" -o ppid= | tr -d ' ')
+    if [ -z "$pid" ]; then
+      break
+    fi
+  done
+  ancestors=("1" "${ancestors[@]}")
+  echo "${ancestors[@]}"
+}
+
+# 获取所有子进程
+get_children() {
+  local ppid="$1"
+  if [[ "$(uname)" == "Darwin" ]]; then
+    $PS_CMD -eo pid=,ppid= | awk -v ppid="$ppid" '$2==ppid {print $1}'
+  else
+    $PS_CMD --no-headers -eo pid=,ppid= | awk -v ppid="$ppid" '$2==ppid {print $1}'
+  fi
+}
+
+# 高亮自身
+print_node() {
+  local pid="$1"
+  local info="$2"
+  if [ "$pid" = "$TARGET_PID" ]; then
+    # 红色高亮
+    echo -e "\033[1;31m$info\033[0m"
+  else
+    echo "$info"
+  fi
+}
+
+# 递归打印后代树
+print_descendants() {
+  local pid="$1"
+  local prefix="$2"
+  local children=( $(get_children "$pid") )
+  local count=${#children[@]}
+  local i=0
+  for child in "${children[@]}"; do
+    i=$((i+1))
+    local child_info=$(get_proc_info "$child")
+    local branch="├── "
+    local next_prefix="$prefix│   "
+    if [ "$i" -eq "$count" ]; then
+      branch="└── "
+      next_prefix="$prefix    "
+    fi
+    echo -n "$prefix$branch"
+    print_node "$child" "$child_info"
+    print_descendants "$child" "$next_prefix"
+  done
+}
+
+# 主流程
+ancestors=( $(get_ancestors "$TARGET_PID") )
+
+# 打印祖先链，按照 tree 格式
+for ((i=0; i<${#ancestors[@]}; i++)); do
+  pid="${ancestors[$i]}"
+  info=$(get_proc_info "$pid")
+  
+  if [ "$i" -eq 0 ]; then
+    # root 进程
+    print_node "$pid" "$info"
+  else
+    # 构建前缀 - 祖先链是单一路径，不需要垂直连接线
+    prefix=""
+    for ((j=1; j<i; j++)); do
+      prefix+="    "
+    done
+    
+    # 判断是否为目标 PID（最后一个）
+    if [ "$pid" = "$TARGET_PID" ]; then
+      echo -n "${prefix}└── "
+      print_node "$pid" "$info"
+      # 打印目标 PID 的后代
+      print_descendants "$pid" "${prefix}    "
+    else
+      echo -n "${prefix}└── "
+      print_node "$pid" "$info"
+    fi
+  fi
+done
+

@@ -12,6 +12,12 @@ fi
 
 TARGET_PID="$1"
 
+# 检查 PID 是否存在
+if ! ps -p "$TARGET_PID" >/dev/null 2>&1; then
+  echo "pstree: 进程号 $TARGET_PID 不存在"
+  exit 1
+fi
+
 # 检查 ps 兼容性
 if ps -p $$ -o ppid= >/dev/null 2>&1; then
   PS_CMD="ps"

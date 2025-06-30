@@ -2,14 +2,48 @@
 
 import argparse
 import os
+import sys
 
-from PyPDF2 import PdfWriter
+from PyPDF2 import PdfWriter, PdfReader
 
 
-arg_parser = argparse.ArgumentParser(description='Merge PDF files',
-                                     usage='Usage: pdf_merge <file1> <file2> ... -o <output_file>')
+def parse_page_ranges(pages_spec):
+    """
+    Parses a page range string like '1,3-5,8' into a sorted list of 0-indexed page numbers.
+    """
+    pages = set()
+    if not pages_spec:
+        return []
+    for part in pages_spec.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        if '-' in part:
+            try:
+                start, end = [int(p.strip()) for p in part.split('-', 1)]
+                if start <= 0 or end <= 0 or start > end:
+                    raise ValueError
+                # Page numbers are 1-based for user, convert to 0-based for PyPDF2
+                for i in range(start, end + 1):
+                    pages.add(i - 1)
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid range '{part}' in page specification.")
+        else:
+            try:
+                page = int(part)
+                if page <= 0:
+                    raise ValueError
+                # Convert to 0-based index
+                pages.add(page - 1)
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid page number '{part}' in page specification.")
+    return sorted(list(pages))
+
+
+arg_parser = argparse.ArgumentParser(description='Merge PDF files with optional page selection.',
+                                     usage='Usage: pdf_merge <file1[:pages]> <file2[:pages]> ... -o <output_file>')
 arg_parser.add_argument('-o', '--output', help='Output file name', required=True)
-arg_parser.add_argument('input_files', nargs='+', help='Input files')
+arg_parser.add_argument('input_files', nargs='+', help='Input files, optionally with page ranges (e.g., mydoc.pdf:1,3-5)')
 args = arg_parser.parse_args()
 
 merger = PdfWriter()
@@ -17,13 +51,46 @@ merger = PdfWriter()
 input_files = args.input_files
 output_file = args.output
 
-for filename in input_files:
-    input_pdf = open(filename, 'rb')
+if ':' in output_file:
+    print(f"Error: Output file '{output_file}' cannot have page specification.", file=sys.stderr)
+    sys.exit(1)
+
+for filename_spec in input_files:
+    parts = filename_spec.rsplit(':', 1)
+    filename = parts[0]
+    pages_spec = parts[1] if len(parts) > 1 else None
+
+    if not os.path.exists(filename):
+        print(f"Error: Input file not found: {filename}", file=sys.stderr)
+        sys.exit(1)
+
     outline_name = os.path.basename(filename)
     outline_name = os.path.splitext(outline_name)[0]
-    merger.append(input_pdf, outline_item=outline_name)
 
-output_pdf = open(output_file, 'wb')
-merger.write(output_pdf)
-merger.close()
-output_pdf.close()
+    try:
+        if pages_spec:
+            pages_to_include = parse_page_ranges(pages_spec)
+            # Open with PdfReader just to validate page count
+            reader = PdfReader(filename)
+            max_page = len(reader.pages)
+            for p in pages_to_include:
+                if p >= max_page:
+                    print(f"Error: Page number {p + 1} is out of range for file {filename} which has {max_page} pages.", file=sys.stderr)
+                    sys.exit(1)
+            # Let merger handle the file opening/closing
+            merger.append(filename, outline_item=outline_name, pages=pages_to_include)
+        else:
+            merger.append(filename, outline_item=outline_name)
+    except ValueError as e:
+        print(f"Error processing '{filename_spec}': {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred while processing {filename}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+try:
+    with open(output_file, 'wb') as output_pdf:
+        merger.write(output_pdf)
+finally:
+    merger.close()

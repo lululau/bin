@@ -1,0 +1,9 @@
+#!/bin/bash
+
+fd | fzf \
+    --bind 'enter:become:kiro {}' \
+    --bind 'alt-a:reload:fd -u' \
+    --bind 'alt-h:reload:fd' \
+    --header $'Enter: Open,\t Alt-a: Show All,\t Alt-h: Hide Hidden Files'
+
+exit 0

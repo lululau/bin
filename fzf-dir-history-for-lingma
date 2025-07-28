@@ -1,0 +1,6 @@
+#!/bin/bash
+
+dir=$({ autojump -s | sed -n '/^_______/!p; /^_______/q'  | gtac | cut -d$'\t' -f2; } | fzf --bind 'alt-enter:become:lingma {1}' )
+if [ -n "$dir" -a -e "$dir" ]; then
+  exec yazi "$dir"
+fi

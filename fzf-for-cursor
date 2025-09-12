@@ -1,7 +1,7 @@
 #!/bin/bash
 
 fd | fzf \
-    --bind 'enter:become:cursor {}' \
+    --bind 'enter:become:/Applications/Cursor.app/Contents/MacOS/Cursor {}' \
     --bind 'alt-a:reload:fd -u' \
     --bind 'alt-h:reload:fd' \
     --header $'Enter: Open,\t Alt-a: Show All,\t Alt-h: Hide Hidden Files'

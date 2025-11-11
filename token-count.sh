@@ -10,6 +10,7 @@ calculate_english_tokens() {
 
     # 英文单词平均每个单词约 0.75-1 个 token
     # 这里使用保守估计：0.85 tokens per word
+
     if [ "$word_count" = "0" ]; then
         echo "0"
     else
@@ -20,8 +21,8 @@ calculate_english_tokens() {
 # 函数：计算中文字符的 token 数量
 calculate_chinese_tokens() {
     local text="$1"
-    # 使用 Ruby 来正确处理 Unicode 中文字符
-    local char_count=$(echo "$text" | ruby -ne 'puts $_.scan(/\p{Han}/).length')
+    # 使用 Perl 来正确处理 Unicode 中文字符
+    local char_count=$(echo "$text" | perl -C -ne 'my $count = () = /\p{Han}/g; print "$count\n"')
 
     # 中文字符平均每个字符约 1.5 个 token
     if [ "$char_count" = "0" ]; then
@@ -34,8 +35,8 @@ calculate_chinese_tokens() {
 # 函数：计算标点符号和数字的 token 数量
 calculate_punctuation_numbers_tokens() {
     local text="$1"
-    # 使用 Ruby 来处理 Unicode 字符
-    local count=$(echo "$text" | ruby -ne 'puts $_.scan(/[^\p{Latin}\p{Han}\s]/).length')
+    # 使用 Perl 来处理 Unicode 字符
+    local count=$(echo "$text" | perl -C -ne 'my $count = () = /[^\p{Latin}\p{Han}\s]/g; print "$count\n"')
 
     # 标点符号和数字每个算 1 个 token
     echo "$count"

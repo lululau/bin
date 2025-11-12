@@ -13,11 +13,12 @@ tmpfile=$(mktemp)
 basename=$(basename "$tmpfile")
 eval "$capture_cmd" | perl -00 -pe 1 > "$tmpfile"
 if [ "$(uname)" = Darwin ]; then
-   emacsclient -t -s term -e "(progn (find-file \"$tmpfile\") (linum-mode) (end-of-buffer))"
-   emacsclient -n -s term -e "(kill-buffer \"$basename\")"
+  # emacsclient -t -s term -e "(progn (find-file \"$tmpfile\") (linum-mode) (end-of-buffer))"
+  # emacsclient -n -s term -e "(kill-buffer \"$basename\")"
+  emacsclient -q -e "(progn (find-file \"$tmpfile\")  (end-of-buffer))"
+  osascript -e "tell app \"Emacs\" to activate"
 else
-   emacsclient -t -e "(progn (find-file \"$tmpfile\") (linum-mode) (end-of-buffer))"
-   emacsclient -n -e "(kill-buffer \"$basename\")"
+   emacsclient -q -e "(progn (find-file \"$tmpfile\")  (end-of-buffer))"
 fi
 
 rm "$tmpfile"

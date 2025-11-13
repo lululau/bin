@@ -1,5 +1,32 @@
 #!/usr/bin/env python3
 
+# PDF 合并工具
+#
+# 功能：合并多个 PDF 文件，支持选择性页面合并
+#
+# 依赖：PyPDF2 库（可通过 'pip install pypdf2' 安装）
+#
+# 语法：
+#   pdf_merge <文件1[:页码范围]> <文件2[:页码范围]> ... -o <输出文件>
+#
+# 页码范围格式：
+#   - 单个页码：1, 3, 5
+#   - 连续页码：3-7（表示第3页到第7页）
+#   - 混合使用：1,3-5,8,10-12
+#
+# 示例：
+#   # 合并完整文件
+#   pdf_merge file1.pdf file2.pdf -o merged.pdf
+#
+#   # 选择性合并页面
+#   pdf_merge doc1.pdf:1,3-5 doc2.pdf:2,4-6 -o selected.pdf
+#
+# 特性：
+#   - 支持从不同 PDF 文件中选择特定页面
+#   - 自动创建书签（基于原文件名）
+#   - 详细的错误提示和验证
+#   - 保持原文件的页面格式和内容
+
 import argparse
 import os
 import sys

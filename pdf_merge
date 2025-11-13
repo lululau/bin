@@ -4,8 +4,11 @@ import argparse
 import os
 import sys
 
-from PyPDF2 import PdfWriter, PdfReader
-
+try:
+    from PyPDF2 import PdfWriter, PdfReader
+except ImportError:
+    print("Error: PyPDF2 library is required. Install it using 'pip install pypdf2'.", file=sys.stderr)
+    sys.exit(1)
 
 def parse_page_ranges(pages_spec):
     """

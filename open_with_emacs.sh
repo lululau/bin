@@ -10,12 +10,13 @@ fi
 
 # Function to resolve relative path to absolute path
 resolve_path() {
-  local path="$1"
+  local file_path="$1"
   local working_dir="$2"
 
+
   # If already absolute path, return as is
-  if echo "$path" | grep -q '^/'; then
-    echo "$path"
+  if echo "$file_path" | grep -q '^/'; then
+    echo "$file_path"
     return
   fi
 
@@ -29,25 +30,17 @@ resolve_path() {
   local original_pwd="$(pwd)"
   if cd "$target_dir" 2>/dev/null; then
     # If file exists, get absolute path
-    if [ -f "$path" ]; then
-      realpath "$path" 2>/dev/null || echo "$(pwd)/$path"
+    if [ -e "$file_path" ]; then
+      realpath "$file_path" 2>/dev/null || echo "$(pwd)/$file_path"
       cd "$original_pwd" 2>/dev/null
       return
     fi
 
-    # If file doesn't exist, try to find it using find command (limited search)
-    local found_file
-    found_file=$(find . -name "$path" -type f 2>/dev/null | head -1)
-    if [ -n "$found_file" ]; then
-      realpath "$found_file" 2>/dev/null || echo "$(pwd)/$found_file"
-      cd "$original_pwd" 2>/dev/null
-      return
-    fi
     cd "$original_pwd" 2>/dev/null
   fi
 
   # If not found, return original path (let open handle it)
-  echo "$path"
+  echo "$file_path"
 }
 
 # iTerm2 Semantic History may pass the working directory as a parameter
@@ -80,18 +73,18 @@ fi
 # Check if file is a Ruby file and we have a line number parameter
 if echo "$file" | grep -q '\(\.rb$\)\|\(.rake$\)\|\(Gemfile\)' && [ -n "$3" ] && echo "$3" | grep -q '^[0-9]\+$'
 then
-    # Ruby file with line number - open in Emacs
-    open -a Emacs
-    $HOMEBREW_PREFIX/bin/emacsclient -n +"$3" "$file"
+  # Ruby file with line number - open in Emacs
+  open -a Emacs
+  $HOMEBREW_PREFIX/bin/emacsclient -n +"$3" "$file"
 elif echo "$file" | grep -q '\(\.rb$\)\|\(.rake$\)\|\(Gemfile\)' && [ -n "$2" ] && echo "$2" | grep -q '^[0-9]\+$'
 then
-    # Ruby file with line number as second parameter
-    open -a Emacs
-    $HOMEBREW_PREFIX/bin/emacsclient -n +"$2" "$file"
+  # Ruby file with line number as second parameter
+  open -a Emacs
+  $HOMEBREW_PREFIX/bin/emacsclient -n +"$2" "$file"
 elif [ -f "$file" ]; then
-    # Regular file - open with default application
-    open "$file"
+  # Regular file - open with default application
+  open "$file"
 else
-    # File not found or doesn't exist, try to open anyway (might be a URL or other format)
+  # File not found or doesn't exist, try to open anyway (might be a URL or other format)
     open "$file"
 fi

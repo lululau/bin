@@ -2,25 +2,95 @@
 
 cat <<'EOF'
 {
-  "jsonapi": { "version": "1.0" },
-  "errors": [
-    {
-      "code":   "123",
-      "source": { "pointer": "/data/attributes/first-name" },
-      "title":  "Value is too short",
-      "detail": "First name must contain at least three characters."
-    },
-    {
-      "code":   "225",
-      "source": { "pointer": "/data/attributes/password" },
-      "title": "Passwords must contain a letter, number, and punctuation character.",
-      "detail": "The password provided is missing a punctuation character."
-    },
-    {
-      "code":   "226",
-      "source": { "pointer": "/data/attributes/password" },
-      "title": "Password and password confirmation do not match."
+  "metadata": {
+    "version": "2.1",
+    "generated_at": "2025-12-03T10:30:45.123Z",
+    "is_production": false,
+    "max_records": 1000
+  },
+  "user": {
+    "id": 12345,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "age": 28,
+    "height": 175.5,
+    "is_active": true,
+    "last_login": null,
+    "profile": {
+      "bio": "Software developer passionate about JSON",
+      "skills": ["JavaScript", "Python", "Go", "Rust"],
+      "experience_years": 5,
+      "has_degree": true
     }
-  ]
+  },
+  "statistics": {
+    "total_requests": 15420,
+    "success_rate": 0.985,
+    "error_counts": {
+      "400": 12,
+      "401": 3,
+      "404": 45,
+      "500": 2
+    },
+    "avg_response_time": 145.67
+  },
+  "data_samples": [
+    {
+      "type": "string",
+      "value": "Hello, World!",
+      "empty_string": "",
+      "special_chars": "!@#$%^&*()_+-=[]{}|;:,.<>?"
+    },
+    {
+      "type": "numbers",
+      "integer": 42,
+      "negative_int": -17,
+      "float": 3.14159,
+      "scientific": 1.23e-4,
+      "zero": 0,
+      "infinity": null
+    },
+    {
+      "type": "booleans",
+      "true_val": true,
+      "false_val": false
+    },
+    {
+      "type": "null_and_empty",
+      "null_val": null,
+      "empty_obj": {},
+      "empty_array": []
+    }
+  ],
+  "nested_structure": {
+    "level1": {
+      "level2": {
+        "level3": {
+          "deep_value": "Reached deep nesting",
+          "sibling_array": [
+            {"index": 0, "data": "first"},
+            {"index": 1, "data": "second"},
+            {"index": 2, "data": "third"}
+          ]
+        }
+      }
+    }
+  },
+  "complex_data": {
+    "coordinates": [40.7128, -74.0060],
+    "rgb_color": [255, 128, 0],
+    "binary_data": "U29tZSBiaW5hcnkgZGF0YSBpbiBiYXNlNjQ=",
+    "unicode_text": "Hello 世界 🌍 Emoji test 🚀",
+    "mixed_types": [
+      "string",
+      123,
+      45.67,
+      true,
+      false,
+      null,
+      {"nested": "object"},
+      ["nested", "array"]
+    ]
+  }
 }
 EOF

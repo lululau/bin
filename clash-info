@@ -1,0 +1,147 @@
+#!/bin/bash
+
+# 显示帮助信息
+show_help() {
+    cat << EOF
+流量信息查询工具
+
+用法: $0 <订阅URL>
+
+参数:
+    订阅URL    Clash 订阅链接，用于查询流量信息
+
+示例:
+    $0 "https://example.com/subscribe"
+
+输出格式:
+    已用流量 / 总流量 (百分比)
+    到期日期 (剩余天数)
+
+要求:
+    - 系统需安装 curl 和 bc
+    - 订阅链接需支持 subscription-userinfo 响应头
+
+EOF
+}
+
+# 检查参数
+if [ $# -eq 0 ]; then
+    echo "错误: 未提供订阅 URL" >&2
+    echo "" >&2
+    show_help
+    exit 1
+fi
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+    exit 0
+fi
+
+URL="$1"
+
+# 验证 URL 格式
+if ! echo "$URL" | grep -q "^https\?://"; then
+    echo "错误: URL 格式无效，必须以 http:// 或 https:// 开头" >&2
+    exit 1
+fi
+HEADER_INFO=$(curl -sLI -X GET -m 10 -w 'http_code=%{http_code}' -H 'User-Agent: Clash' "$URL")
+
+# 检查依赖项
+check_dependencies() {
+    local missing_deps=()
+
+    if ! command -v curl >/dev/null 2>&1; then
+        missing_deps+=("curl")
+    fi
+
+    if ! command -v bc >/dev/null 2>&1; then
+        missing_deps+=("bc")
+    fi
+
+    if [ ${#missing_deps[@]} -ne 0 ]; then
+        echo "错误: 缺少必要的依赖项: ${missing_deps[*]}" >&2
+        echo "请安装这些工具后再运行脚本" >&2
+        exit 1
+    fi
+}
+
+check_dependencies
+
+# 获取订阅信息
+echo "正在查询订阅信息..." >&2
+HEADER_INFO=$(curl -sLI -X GET -m 10 -w 'http_code=%{http_code}' -H 'User-Agent: Clash' "$URL" 2>/dev/null)
+
+# 检查是否成功
+HTTP_CODE=$(echo "$HEADER_INFO" | grep "http_code=" | cut -d'=' -f2)
+if [ "$HTTP_CODE" != "200" ]; then
+    echo "错误: 请求失败，HTTP 状态码: $HTTP_CODE" >&2
+    echo "请检查订阅链接是否正确" >&2
+    exit 1
+fi
+
+# 提取 subscription-userinfo
+SUB_INFO=$(echo "$HEADER_INFO" | grep -i "subscription-userinfo:" | head -1)
+if [ -z "$SUB_INFO" ]; then
+    echo "错误: 未找到订阅信息" >&2
+    echo "该订阅链接可能不支持流量查询功能" >&2
+    exit 1
+fi
+
+# 解析流量信息
+UPLOAD=$(echo "$SUB_INFO" | sed 's/.*upload=\([0-9]*\).*/\1/')
+DOWNLOAD=$(echo "$SUB_INFO" | sed 's/.*download=\([0-9]*\).*/\1/')
+TOTAL=$(echo "$SUB_INFO" | sed 's/.*total=\([0-9]*\).*/\1/')
+EXPIRE=$(echo "$SUB_INFO" | sed 's/.*expire=\([0-9]*\).*/\1/')
+
+# 检查是否获取到数值
+if [ -z "$UPLOAD" ] || [ -z "$DOWNLOAD" ] || [ -z "$TOTAL" ] || [ -z "$EXPIRE" ]; then
+    echo "错误: 解析流量信息失败" >&2
+    echo "订阅信息格式可能不正确: $SUB_INFO" >&2
+    exit 1
+fi
+
+# 计算已用流量 (字节)
+USED=$((UPLOAD + DOWNLOAD))
+
+# 转换为 GB (1 GB = 1073741824 字节)
+GB_FACTOR=1073741824
+USED_GB=$(echo "scale=1; $USED / $GB_FACTOR" | bc)
+TOTAL_GB=$(echo "scale=1; $TOTAL / $GB_FACTOR" | bc)
+
+# 计算百分比
+if [ "$TOTAL" -gt 0 ]; then
+    PERCENTAGE=$(echo "scale=1; ($USED * 100.0) / $TOTAL" | bc)
+else
+    PERCENTAGE="0.0"
+fi
+
+# 计算到期日期和剩余天数
+CURRENT_TIME=$(date +%s)
+
+# 检测操作系统并使用相应的 date 命令语法
+# macOS: date -r timestamp
+# Linux: date -d @timestamp
+OS=$(uname -s)
+if [ "$OS" = "Darwin" ]; then
+    EXPIRE_DATE=$(date -r "$EXPIRE" +%Y-%m-%d 2>/dev/null)
+else
+    EXPIRE_DATE=$(date -d "@$EXPIRE" +%Y-%m-%d 2>/dev/null)
+fi
+
+# 检查日期转换是否成功
+if [ -z "$EXPIRE_DATE" ]; then
+    echo "警告: 无法转换到期时间戳 $EXPIRE" >&2
+    EXPIRE_DATE="未知"
+    DAYS_LEFT="未知"
+else
+    if [ "$EXPIRE" -gt "$CURRENT_TIME" ]; then
+        DAYS_LEFT=$(( (EXPIRE - CURRENT_TIME) / 86400 ))
+    else
+        DAYS_LEFT=0
+    fi
+fi
+
+# 输出结果
+echo ""
+printf "%.1f GB / %.1f GB (%.1f%%)\n" "$USED_GB" "$TOTAL_GB" "$PERCENTAGE"
+printf "%s (剩余 %s 天)\n" "$EXPIRE_DATE" "$DAYS_LEFT"

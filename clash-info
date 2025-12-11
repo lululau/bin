@@ -5,13 +5,13 @@ show_help() {
     cat << EOF
 流量信息查询工具
 
-用法: $0 <订阅URL>
+用法: clash-info <订阅URL>
 
 参数:
     订阅URL    Clash 订阅链接，用于查询流量信息
 
 示例:
-    $0 "https://example.com/subscribe"
+    clash-info "https://example.com/subscribe"
 
 输出格式:
     已用流量 / 总流量 (百分比)

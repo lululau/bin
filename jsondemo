@@ -1,6 +1,38 @@
 #!/bin/bash
 
-cat <<'EOF'
+# Function to display usage
+usage() {
+    echo "Usage: jsondemo [OPTION]"
+    echo "Display various JSON examples based on the selected option."
+    echo ""
+    echo "Options:"
+    echo "  simple       Display a simple JSON example"
+    echo "  full         Display a comprehensive JSON example with all data types"
+    echo "  openai-req   Display OpenAI API request example"
+    echo "  openai-res   Display OpenAI API response example"
+    echo "  anthropic-req Display Anthropic API request example"
+    echo "  anthropic-res Display Anthropic API response example"
+    echo "  help         Display this help message"
+    echo ""
+    echo "If no option is provided, defaults to 'full'."
+}
+
+# Function to display simple JSON
+show_simple() {
+    cat <<'EOF'
+{
+  "name": "John Doe",
+  "age": 30,
+  "city": "New York",
+  "isStudent": false,
+  "skills": ["JavaScript", "Python"]
+}
+EOF
+}
+
+# Function to display full JSON (original example)
+show_full() {
+    cat <<'EOF'
 {
   "metadata": {
     "version": "2.1",
@@ -94,3 +126,135 @@ cat <<'EOF'
   }
 }
 EOF
+}
+
+# Function to display OpenAI API request example
+show_openai_req() {
+    cat <<'EOF'
+{
+  "model": "gpt-4-turbo-preview",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant."
+    },
+    {
+      "role": "user",
+      "content": "Write a Python function that calculates the factorial of a number."
+    }
+  ],
+  "max_tokens": 150,
+  "temperature": 0.7,
+  "top_p": 1,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "stream": false,
+  "stop": null,
+  "user": "user123"
+}
+EOF
+}
+
+# Function to display OpenAI API response example
+show_openai_res() {
+    cat <<'EOF'
+{
+  "id": "chatcmpl-123",
+  "object": "chat.completion",
+  "created": 1677652288,
+  "model": "gpt-4-turbo-preview",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Here's a Python function that calculates the factorial of a number:\n\n```python\ndef factorial(n):\n    if n < 0:\n        raise ValueError('Factorial is not defined for negative numbers')\n    if n == 0 or n == 1:\n        return 1\n    return n * factorial(n - 1)\n\n# Example usage\nprint(factorial(5))  # Output: 120\n```\n\nThis function uses recursion to calculate the factorial."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 56,
+    "completion_tokens": 87,
+    "total_tokens": 143
+  }
+}
+EOF
+}
+
+# Function to display Anthropic API request example
+show_anthropic_req() {
+    cat <<'EOF'
+{
+  "model": "claude-3-opus-20240229",
+  "max_tokens": 1024,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Explain the concept of machine learning in simple terms."
+    }
+  ],
+  "temperature": 0.5,
+  "top_k": 250,
+  "top_p": 0.9,
+  "stop_sequences": ["</ANSWER>"],
+  "stream": false,
+  "system": "You are a knowledgeable teacher who explains complex topics simply."
+}
+EOF
+}
+
+# Function to display Anthropic API response example
+show_anthropic_res() {
+    cat <<'EOF'
+{
+  "id": "msg_123456",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "Machine learning is like teaching a computer to recognize patterns without explicit programming. Think of it like this:\n\nJust as a child learns to identify cats by seeing many examples, a computer learns by analyzing lots of data. The more examples it sees, the better it gets at making predictions or decisions.\n\nKey concepts:\n• Training: Showing the computer many examples\n• Patterns: The rules it discovers in the data\n• Prediction: Using those rules for new situations\n\nIt's used everywhere - from spam filters in your email to recommendation systems on streaming services!"
+    }
+  ],
+  "model": "claude-3-opus-20240229",
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 25,
+    "output_tokens": 147
+  }
+}
+EOF
+}
+
+# Main script logic
+case "${1:-full}" in
+    "simple")
+        show_simple
+        ;;
+    "full")
+        show_full
+        ;;
+    "openai-req")
+        show_openai_req
+        ;;
+    "openai-res")
+        show_openai_res
+        ;;
+    "anthropic-req")
+        show_anthropic_req
+        ;;
+    "anthropic-res")
+        show_anthropic_res
+        ;;
+    "help"|"-h"|"--help")
+        usage
+        ;;
+    *)
+        echo "Error: Unknown option '$1'"
+        echo ""
+        usage
+        exit 1
+        ;;
+esac

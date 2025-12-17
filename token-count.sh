@@ -1,16 +1,24 @@
 #!/bin/bash
 
-# Token 计算脚本 - 支持中英文混合文本的离线估算
+# Token 数量估算脚本 - 支持中英文混合文本的离线估算
 # 使用方法:
 #   echo "你的文本" | ./token-count.sh
 #   ./token-count.sh 文件1.txt 文件2.txt
 #   ./token-count.sh --help
 #   ./token-count.sh --json 文件.txt
+#
+# 估算方法说明:
+# • 英文单词：每个单词约 0.85 个 token（保守估计）
+# • 中文字符：每个字符约 1.5 个 token
+# • 标点符号和数字：每个算 1 个 token
+#
+# 注意：这是基于平均情况的估算值，实际 token 数量可能因模型和上下文而异。
+
 
 # 显示帮助信息
 show_help() {
-    cat << 'EOF'
-Token 计算脚本 - 支持中英文混合文本的离线估算
+  cat << 'EOF'
+Token 数量估算脚本 - 支持中英文混合文本的离线估算
 
 使用方法:
   echo "文本" | ./token-count.sh               从标准输入读取文本
@@ -25,6 +33,13 @@ Token 计算脚本 - 支持中英文混合文本的离线估算
   ./token-count.sh file1.txt file2.txt
   ./token-count.sh --json document.txt
   cat document.txt | ./token-count.sh --json
+
+估算方法说明:
+  • 英文单词：每个单词约 0.85 个 token（保守估计）
+  • 中文字符：每个字符约 1.5 个 token
+  • 标点符号和数字：每个算 1 个 token
+
+  注意：这是基于平均情况的估算值，实际 token 数量可能因模型和上下文而异。
 EOF
 }
 

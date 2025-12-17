@@ -11,5 +11,7 @@ fi
 
 
 export K9SCONFIG=$HOME/.k9s
+export K9S_CONFIG_DIR=$HOME/.k9s
+export K9S_SKIN=transparent
 export LC_CTYPE=en_US.UTF-8
 exec $HOMEBREW_PREFIX/bin/k9s "$@"

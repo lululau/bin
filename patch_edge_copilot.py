@@ -96,7 +96,6 @@ def main():
         if last_version is None:
             print('Failed to get version. File not found', os.path.join(user_data_path, 'Last Version'))
             continue
-        main_version = int(last_version.split('.')[0])
         print('Patching Edge', version, last_version, '"'+user_data_path+'"')
         patch_local_state(user_data_path)
         patch_preferences(user_data_path)

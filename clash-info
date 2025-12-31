@@ -1,5 +1,7 @@
 #!/bin/bash
 
+USER_AGENT="clash-verge/v2.4.4"
+
 # 显示帮助信息
 show_help() {
     cat << EOF
@@ -44,7 +46,7 @@ if ! echo "$URL" | grep -q "^https\?://"; then
     echo "错误: URL 格式无效，必须以 http:// 或 https:// 开头" >&2
     exit 1
 fi
-HEADER_INFO=$(curl -sLI -X GET -m 10 -w 'http_code=%{http_code}' -H 'User-Agent: Clash' "$URL")
+HEADER_INFO=$(curl -sLI -X GET -m 10 -w 'http_code=%{http_code}' -H "User-Agent: $USER_AGENT" "$URL")
 
 # 检查依赖项
 check_dependencies() {
@@ -69,7 +71,7 @@ check_dependencies
 
 # 获取订阅信息
 echo "正在查询订阅信息..." >&2
-HEADER_INFO=$(curl -sLI -X GET -m 10 -w 'http_code=%{http_code}' -H 'User-Agent: Clash' "$URL" 2>/dev/null)
+HEADER_INFO=$(curl -sLI -X GET -m 10 -w 'http_code=%{http_code}' -H "User-Agent: $USER_AGENT" "$URL" 2>/dev/null)
 
 # 检查是否成功
 HTTP_CODE=$(echo "$HEADER_INFO" | grep "http_code=" | cut -d'=' -f2)

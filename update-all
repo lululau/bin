@@ -1,0 +1,436 @@
+#!/usr/bin/env zsh
+# 系统更新脚本 - 自动更新 Homebrew、NPM 包和相关工具
+
+# 颜色定义
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+RESET='\033[0m'
+
+# 静默模式 - 使用 -q 或 --quiet 参数启用
+QUIET=false
+if [[ "$1" == "-q" ]] || [[ "$1" == "--quiet" ]]; then
+  QUIET=true
+fi
+
+# 带颜色打印函数 - 仅在非静默模式下显示
+print_color() {
+  local color=$1
+  local message=$2
+  if [[ "$QUIET" == "false" ]]; then
+    echo -e "${color}${message}${RESET}"
+  fi
+}
+
+# 静默模式友好打印函数 - 总是显示
+print_quiet() {
+  local message=$1
+  echo -e "${message}"
+}
+
+# 开始计时
+START_TIME=$(date +%s)
+
+# ASCII 艺术横幅
+echo -e "${CYAN}"
+cat << "EOF"
+╔══════════════════════════════════════════╗
+║   🔄 SYSTEM UPDATE 🔄                    ║
+╚══════════════════════════════════════════╝
+EOF
+echo -e "${RESET}"
+
+# 遇到错误时继续执行，不中断脚本
+set +e
+
+# 检查依赖项
+if ! command -v brew &> /dev/null; then
+  print_color "$RED" "✗ Homebrew not found. Please install Homebrew first."
+  exit 1
+fi
+
+if ! command -v npm &> /dev/null; then
+  print_color "$RED" "✗ npm not found. Please install Node.js first."
+  exit 1
+fi
+
+# ============================================
+# 🍺 Homebrew 更新部分
+# ============================================
+print_quiet "${CYAN}🍺 Updating Homebrew...${RESET}"
+
+if [[ "$QUIET" == "false" ]]; then
+  echo ""
+fi
+
+# 更新 Homebrew
+if brew update; then
+  print_color "$GREEN" "  ✓ Homebrew updated successfully"
+else
+  print_color "$RED" "  ✗ Homebrew update failed"
+fi
+
+# 检查过期的软件包
+OUTDATED_COUNT=$(brew outdated | wc -l | tr -d ' ')
+if [[ "$QUIET" == "false" ]] && [[ $OUTDATED_COUNT -gt 0 ]]; then
+  print_color "$YELLOW" "  → $OUTDATED_COUNT outdated packages found"
+  print_color "$BLUE" "  $(brew outdated | sed 's/^/    /')"
+fi
+
+# 升级所有 formulae
+print_color "$CYAN" "  → Upgrading formulae..."
+if brew upgrade; then
+  UPGRADED_COUNT=$(brew outdated | wc -l | tr -d ' ')
+  if [[ $UPGRADED_COUNT -eq 0 ]]; then
+    print_color "$GREEN" "  ✓ All formulae up-to-date"
+  else
+    print_color "$GREEN" "  ✓ Formulae upgraded"
+  fi
+else
+  print_color "$RED" "  ✗ Formulae upgrade failed"
+fi
+
+# 清理旧版本
+print_color "$CYAN" "  → Cleaning up..."
+if brew cleanup; then
+  print_color "$GREEN" "  ✓ Homebrew cleanup completed"
+else
+  print_color "$YELLOW" "  ⚠️  Homebrew cleanup failed"
+fi
+
+# ============================================
+# 📦 Casks 状态显示部分
+# ============================================
+# 注意：brew upgrade 已经同时更新了 formulae 和 casks，无需单独更新
+print_quiet ""
+print_quiet "${CYAN}📦 Casks Status...${RESET}"
+
+if [[ "$QUIET" == "false" ]]; then
+  echo ""
+fi
+
+# 仅显示 casks 状态，不重复更新
+CASKS=$(brew list --casks)
+CASK_COUNT=$(echo "$CASKS" | grep -c '[^[:space:]]' || echo "0")
+
+if [[ $CASK_COUNT -eq 0 ]]; then
+  print_color "$YELLOW" "  ℹ️  No casks installed"
+else
+  print_color "$GREEN" "  ✓ $CASK_COUNT casks (already updated with brew upgrade)"
+fi
+
+# ============================================
+# ⚙️  更新后操作部分
+# ============================================
+print_quiet ""
+print_quiet "${CYAN}⚙️  Running Post-Update Actions...${RESET}"
+
+if [[ "$QUIET" == "false" ]]; then
+  echo ""
+fi
+
+# 确定 HOMEBREW_PREFIX 路径
+if [ -z "$HOMEBREW_PREFIX" ]; then
+  if [ -e "/opt/homebrew/bin/brew" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    HOMEBREW_PREFIX="/usr/local"
+  fi
+fi
+
+# 创建 pyenv versions 目录
+mkdir -p ~/.pyenv/versions
+
+# 链接 Python 2.x
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@2" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@2/2*(On[1]) ~/.pyenv/versions/2
+fi
+
+# 链接 Python 3.14
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@3.14" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.14/3*(On[1]) ~/.pyenv/versions/
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.14/3*(On[1]) ~/.pyenv/versions/3
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.14/3*(On[1]) ~/.pyenv/versions/3.14
+fi
+
+# 链接 Python 3.13
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@3.13" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.13/3*(On[1]) ~/.pyenv/versions/3.13
+fi
+
+# 链接 Python 3.12
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@3.12" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.12/3*(On[1]) ~/.pyenv/versions/3.12
+fi
+
+# 链接 Python 3.11
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@3.11" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.11/3*(On[1]) ~/.pyenv/versions/3.11
+fi
+
+# 链接 Python 3.10
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@3.10" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.10/3*(On[1]) ~/.pyenv/versions/3.10
+fi
+
+# 链接 Python 3.9
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@3.9" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.9/3*(On[1]) ~/.pyenv/versions/3.9
+fi
+
+# 链接 Python 3.8
+if [ -e "$HOMEBREW_PREFIX/Cellar/python@3.8" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/python@3.8/3*(On[1]) ~/.pyenv/versions/3.8
+fi
+
+# 创建 bin 文件链接 - Python 3.14 (注意：使用 ~/.pyenv/versions/3/bin)
+if [ -e ~/.pyenv/versions/3 ]; then
+  cd ~/.pyenv/versions/3/bin
+  cp -Rf python3.14 python3
+  cp -Rf python3 python
+  cp -Rf pip3.14 pip3
+  cp -Rf pip3 pip
+  cp -Rf pydoc3.14 pydoc3
+  cp -Rf python3.14-config python3-config
+  cp -Rf idle3.14 idle3
+  ln -nfs wheel3.14 wheel3
+fi
+
+# 创建 bin 文件链接 - Python 3.13
+if [ -e ~/.pyenv/versions/3.13 ]; then
+  cd ~/.pyenv/versions/3.13/bin
+  cp -Rf python3.13 python3
+  cp -Rf python3 python
+  cp -Rf pip3.13 pip3
+  cp -Rf pip3 pip
+  cp -Rf pydoc3.13 pydoc3
+  cp -Rf python3.13-config python3-config
+  cp -Rf idle3.13 idle3
+  ln -nfs wheel3.13 wheel3
+fi
+
+# 创建 bin 文件链接 - Python 3.12
+if [ -e ~/.pyenv/versions/3.12 ]; then
+  cd ~/.pyenv/versions/3.12/bin
+  cp -Rf python3.12 python3
+  cp -Rf python3 python
+  cp -Rf pip3.12 pip3
+  cp -Rf pip3 pip
+  cp -Rf pydoc3.12 pydoc3
+  cp -Rf python3.12-config python3-config
+  cp -Rf idle3.12 idle3
+  ln -nfs wheel3.12 wheel3
+fi
+
+# 创建 bin 文件链接 - Python 3.11
+if [ -e ~/.pyenv/versions/3.11 ]; then
+  cd ~/.pyenv/versions/3.11/bin
+  cp -Rf python3.11 python3
+  cp -Rf python3 python
+  cp -Rf pip3.11 pip3
+  cp -Rf pip3 pip
+  cp -Rf pydoc3.11 pydoc3
+  cp -Rf python3.11-config python3-config
+  cp -Rf idle3.11 idle3
+  ln -nfs wheel3.11 wheel3
+fi
+
+# 创建 bin 文件链接 - Python 3.10 (只复制 python 和 pip)
+if [ -e ~/.pyenv/versions/3.10 ]; then
+  cd ~/.pyenv/versions/3.10/bin
+  cp -Rf python3.10 python3
+  cp -Rf python3 python
+  cp -Rf pip3.10 pip3
+  cp -Rf pip3 pip
+fi
+
+# 创建 bin 文件链接 - Python 3.9 (只复制 python 和 pip)
+if [ -e ~/.pyenv/versions/3.9 ]; then
+  cd ~/.pyenv/versions/3.9/bin
+  cp -Rf python3.9 python3
+  cp -Rf python3 python
+  cp -Rf pip3.9 pip3
+  cp -Rf pip3 pip
+fi
+
+# 创建 bin 文件链接 - Python 3.8 (只复制 python 和 pip)
+if [ -e ~/.pyenv/versions/3.8 ]; then
+  cd ~/.pyenv/versions/3.8/bin
+  cp -Rf python3.8 python3
+  cp -Rf python3 python
+  cp -Rf pip3.8 pip3
+  cp -Rf pip3 pip
+fi
+
+# 链接 plantuml
+mkdir -p $HOMEBREW_PREFIX/libexec
+if [ -e "$HOMEBREW_PREFIX/Cellar/plantuml" ]; then
+  ln -nfs $HOMEBREW_PREFIX/Cellar/plantuml/*/libexec/plantuml.jar $HOMEBREW_PREFIX/libexec/plantuml.jar
+  print_color "$GREEN" "  ✓ plantuml symlink updated"
+else
+  print_color "$YELLOW" "  ℹ️  plantuml not installed"
+fi
+
+# ============================================
+# 📦 NPM 全局包更新部分
+# ============================================
+print_quiet ""
+print_quiet "${CYAN}📦 Updating NPM Global Packages...${RESET}"
+
+if [[ "$QUIET" == "false" ]]; then
+  echo ""
+fi
+
+print_color "$BLUE" "  → Using official npm registry via --registry option"
+
+# 需要更新的 NPM 包列表
+NPM_PACKAGES=(
+  "@zed-industries/claude-code-acp"
+  "opencode-ai"
+  "@anthropic-ai/claude-code"
+  "@github/copilot-language-server"
+  "@builder.io/ai-shell"
+)
+
+NPM_UPDATED=0
+NPM_SKIPPED=0
+NPM_FAILED=0
+
+# 获取 NPM 包版本的函数
+get_npm_version() {
+  local package=$1
+  npm list -g "$package" --depth=0 | grep "$package@" | sed 's/.*@//'
+}
+
+# 遍历并更新每个 NPM 包
+for package in "${NPM_PACKAGES[@]}"; do
+  # 获取当前版本
+  echo
+  current_version=$(get_npm_version "$package")
+
+  # 如果包未安装，跳过
+  if [[ -z "$current_version" ]]; then
+    if [[ "$QUIET" == "false" ]]; then
+      print_color "$YELLOW" "  ℹ️  $package not installed, skipping"
+    fi
+    NPM_SKIPPED=$((NPM_SKIPPED + 1))
+    echo '----------------------------------------------'
+    continue
+  fi
+
+  if [[ "$QUIET" == "false" ]]; then
+    print_color "$CYAN" "  📌 $package: v${current_version}"
+  fi
+
+  # 更新包
+  if npm install -g "$package" --registry=https://registry.npmjs.org/; then
+    new_version=$(get_npm_version "$package")
+
+    # 比较版本并显示结果
+    if [[ "$new_version" != "$current_version" ]]; then
+      print_color "$GREEN" "  ✓ Updated: v${current_version} → v${new_version}"
+      NPM_UPDATED=$((NPM_UPDATED + 1))
+    else
+      print_color "$YELLOW" "  ✓ Already up-to-date: v${current_version}"
+      NPM_SKIPPED=$((NPM_SKIPPED + 1))
+    fi
+  else
+    print_color "$RED" "  ✗ Update failed for $package"
+    NPM_FAILED=$((NPM_FAILED + 1))
+  fi
+  echo '----------------------------------------------'
+done
+
+# ============================================
+# 🔧 Claude-Code 修改部分
+# ============================================
+print_quiet ""
+print_quiet "${CYAN}🔧 Modifying Claude-Code Limits...${RESET}"
+
+if [[ "$QUIET" == "false" ]]; then
+  echo ""
+fi
+
+# 查找 claude-code 可执行文件
+CLAUDE_PATH=$(which claude)
+
+if [[ -z "$CLAUDE_PATH" ]]; then
+  print_color "$YELLOW" "  ℹ️  Claude-code not found, skipping modification"
+  CLAUDE_MODIFIED=false
+else
+  if [[ -f "$CLAUDE_PATH" ]]; then
+    # 检查文件是否包含限制值
+    if grep -q "25000" "$CLAUDE_PATH"; then
+      # 使用 gsed 修改限制值：25000 → 125000
+      if gsed -i 's/125000/25000/g;s/25000/125000/g' "$CLAUDE_PATH"; then
+        print_color "$GREEN" "  ✓ Claude-code limit modified: 25000 → 125000"
+        CLAUDE_MODIFIED=true
+      else
+        print_color "$RED" "  ✗ Failed to modify claude-code"
+        CLAUDE_MODIFIED=false
+      fi
+    else
+      print_color "$YELLOW" "  ℹ️  Claude-code does not contain limit to modify"
+      CLAUDE_MODIFIED=false
+    fi
+  else
+    print_color "$YELLOW" "  ℹ️  Claude-code is not a regular file"
+    CLAUDE_MODIFIED=false
+  fi
+fi
+
+# ============================================
+# 📊 总结部分
+# ============================================
+END_TIME=$(date +%s)
+TOTAL_TIME=$((END_TIME - START_TIME))
+
+# 计算分钟和秒数
+MINUTES=$((TOTAL_TIME / 60))
+SECONDS=$((TOTAL_TIME % 60))
+
+print_quiet ""
+echo -e "${MAGENTA}"
+cat << "EOF"
+╔══════════════════════════════════════════╗
+║   📊 UPDATE SUMMARY                      ║
+╚══════════════════════════════════════════╝
+EOF
+echo -e "${RESET}"
+
+# 显示各部分的更新状态
+print_color "$GREEN" "  Homebrew: ✓ Updated (includes formulae & casks)"
+print_color "$GREEN" "  NPM: ✓ $NPM_UPDATED updated, $NPM_SKIPPED skipped"
+
+if [[ "$CLAUDE_MODIFIED" == "true" ]]; then
+  print_color "$GREEN" "  Claude-code: ✓ Modified"
+else
+  print_color "$YELLOW" "  Claude-code: ℹ️  Skipped"
+fi
+
+# 如果有失败的 NPM 包，显示警告
+if [[ $NPM_FAILED -gt 0 ]]; then
+  print_color "$RED" "  NPM failures: $NPM_FAILED"
+fi
+
+# 格式化时间显示
+if [[ $MINUTES -gt 0 ]]; then
+  TIME_STR="${MINUTES}m ${SECONDS}s"
+else
+  TIME_STR="${SECONDS}s"
+fi
+
+print_color "$BLUE" "  ⏱️  Total time: $TIME_STR"
+
+# 最终消息
+if [[ $NPM_FAILED -eq 0 ]]; then
+  print_color "$GREEN" "  ✨ All updates completed!"
+else
+  print_color "$YELLOW" "  ⚠️  Some updates encountered errors"
+fi
+
+echo ""

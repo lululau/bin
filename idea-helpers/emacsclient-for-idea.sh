@@ -10,6 +10,11 @@ if echo "$file_path" | grep -qF 'src.zip!'; then
     file_path=/Users/liuxiang/cascode/java/java-sources$(echo "$file_path" | perl -pe 's#.*src\.zip!##')
 fi
 
-open -a Emacs.app
-emacsclient -q --eval "(lx/switch-to-layout-of-project \"$project_root\")" &> /dev/null
-emacsclient -n $row_col_no "$file_path"
+# Check if file is a markdown file
+if echo "$file_path" | grep -qE '\.(md|markdown)$'; then
+    open -a Typora.app "$file_path"
+else
+    open -a Emacs.app
+    emacsclient -q --eval "(lx/switch-to-layout-of-project \"$project_root\")" &> /dev/null
+    emacsclient -n $row_col_no "$file_path"
+fi

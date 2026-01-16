@@ -1,0 +1,9 @@
+#!/bin/bash
+
+file=$1
+
+if [[ "$file" == *.md || "$file" == *.markdown ]]; then
+  open -a Typora.app "$file"
+else
+  exec nvim "$file"
+fi

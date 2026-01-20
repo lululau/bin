@@ -82,7 +82,7 @@ fi
 
 # 升级所有 formulae
 print_color "$CYAN" "  → Upgrading formulae..."
-if brew upgrade; then
+if brew upgrade --greedy; then
   UPGRADED_COUNT=$(brew outdated | wc -l | tr -d ' ')
   if [[ $UPGRADED_COUNT -eq 0 ]]; then
     print_color "$GREEN" "  ✓ All formulae up-to-date"

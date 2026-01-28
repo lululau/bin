@@ -291,7 +291,6 @@ print_color "$BLUE" "  → Using official npm registry via --registry option"
 NPM_PACKAGES=(
   "@zed-industries/claude-code-acp"
   "opencode-ai"
-  "@anthropic-ai/claude-code"
   "@github/copilot-language-server"
   "@builder.io/ai-shell"
 )
@@ -345,43 +344,6 @@ for package in "${NPM_PACKAGES[@]}"; do
   echo '----------------------------------------------'
 done
 
-# ============================================
-# 🔧 Claude-Code 修改部分
-# ============================================
-print_quiet ""
-print_quiet "${CYAN}🔧 Modifying Claude-Code Limits...${RESET}"
-
-if [[ "$QUIET" == "false" ]]; then
-  echo ""
-fi
-
-# 查找 claude-code 可执行文件
-CLAUDE_PATH=$(which claude)
-
-if [[ -z "$CLAUDE_PATH" ]]; then
-  print_color "$YELLOW" "  ℹ️  Claude-code not found, skipping modification"
-  CLAUDE_MODIFIED=false
-else
-  if [[ -f "$CLAUDE_PATH" ]]; then
-    # 检查文件是否包含限制值
-    if grep -q "25000" "$CLAUDE_PATH"; then
-      # 使用 gsed 修改限制值：25000 → 125000
-      if gsed -i 's/125000/25000/g;s/25000/125000/g' "$CLAUDE_PATH"; then
-        print_color "$GREEN" "  ✓ Claude-code limit modified: 25000 → 125000"
-        CLAUDE_MODIFIED=true
-      else
-        print_color "$RED" "  ✗ Failed to modify claude-code"
-        CLAUDE_MODIFIED=false
-      fi
-    else
-      print_color "$YELLOW" "  ℹ️  Claude-code does not contain limit to modify"
-      CLAUDE_MODIFIED=false
-    fi
-  else
-    print_color "$YELLOW" "  ℹ️  Claude-code is not a regular file"
-    CLAUDE_MODIFIED=false
-  fi
-fi
 
 # ============================================
 # 📊 总结部分
@@ -405,12 +367,6 @@ echo -e "${RESET}"
 # 显示各部分的更新状态
 print_color "$GREEN" "  Homebrew: ✓ Updated (includes formulae & casks)"
 print_color "$GREEN" "  NPM: ✓ $NPM_UPDATED updated, $NPM_SKIPPED skipped"
-
-if [[ "$CLAUDE_MODIFIED" == "true" ]]; then
-  print_color "$GREEN" "  Claude-code: ✓ Modified"
-else
-  print_color "$YELLOW" "  Claude-code: ℹ️  Skipped"
-fi
 
 # 如果有失败的 NPM 包，显示警告
 if [[ $NPM_FAILED -gt 0 ]]; then

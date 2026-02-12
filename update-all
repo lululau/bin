@@ -344,6 +344,75 @@ for package in "${NPM_PACKAGES[@]}"; do
   echo '----------------------------------------------'
 done
 
+# ============================================
+# 🐰 Bun 全局包更新部分
+# ============================================
+print_quiet ""
+print_quiet "${CYAN}🐰 Updating Bun Global Packages...${RESET}"
+
+if [[ "$QUIET" == "false" ]]; then
+  echo ""
+fi
+
+# 检查 bun 是否安装
+if ! command -v bun &> /dev/null; then
+  print_color "$YELLOW" "  ℹ️  Bun not found, skipping"
+else
+  # 需要更新的 Bun 包列表
+  BUN_PACKAGES=(
+    "ralph-tui"
+  )
+
+  BUN_UPDATED=0
+  BUN_SKIPPED=0
+  BUN_FAILED=0
+
+  # 获取 Bun 包版本的函数
+  get_bun_version() {
+    local package=$1
+    bun pm ls -g 2>/dev/null | grep " $package@" | sed 's/.*@//'
+  }
+
+  # 遍历并更新每个 Bun 包
+  for package in "${BUN_PACKAGES[@]}"; do
+    # 获取当前版本
+    echo
+    current_version=$(get_bun_version "$package")
+
+    # 如果包未安装，跳过
+    if [[ -z "$current_version" ]]; then
+      if [[ "$QUIET" == "false" ]]; then
+        print_color "$YELLOW" "  ℹ️  $package not installed, skipping"
+      fi
+      BUN_SKIPPED=$((BUN_SKIPPED + 1))
+      echo '----------------------------------------------'
+      continue
+    fi
+
+    if [[ "$QUIET" == "false" ]]; then
+      print_color "$CYAN" "  🐰 $package: v${current_version}"
+    fi
+
+    # 更新包
+    if bun install -g "$package"; then
+      new_version=$(get_bun_version "$package")
+
+      # 比较版本并显示结果
+      if [[ "$new_version" != "$current_version" ]]; then
+        print_color "$GREEN" "  ✓ Updated: v${current_version} → v${new_version}"
+        BUN_UPDATED=$((BUN_UPDATED + 1))
+      else
+        print_color "$YELLOW" "  ✓ Already up-to-date: v${current_version}"
+        BUN_SKIPPED=$((BUN_SKIPPED + 1))
+      fi
+    else
+      print_color "$RED" "  ✗ Update failed for $package"
+      BUN_FAILED=$((BUN_FAILED + 1))
+    fi
+    echo '----------------------------------------------'
+  done
+fi
+
 
 # ============================================
 # 📊 总结部分
@@ -367,10 +436,16 @@ echo -e "${RESET}"
 # 显示各部分的更新状态
 print_color "$GREEN" "  Homebrew: ✓ Updated (includes formulae & casks)"
 print_color "$GREEN" "  NPM: ✓ $NPM_UPDATED updated, $NPM_SKIPPED skipped"
+if command -v bun &> /dev/null; then
+  print_color "$GREEN" "  Bun: ✓ $BUN_UPDATED updated, $BUN_SKIPPED skipped"
+fi
 
-# 如果有失败的 NPM 包，显示警告
+# 如果有失败的包，显示警告
 if [[ $NPM_FAILED -gt 0 ]]; then
   print_color "$RED" "  NPM failures: $NPM_FAILED"
+fi
+if [[ $BUN_FAILED -gt 0 ]]; then
+  print_color "$RED" "  Bun failures: $BUN_FAILED"
 fi
 
 # 格式化时间显示

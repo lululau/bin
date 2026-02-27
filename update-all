@@ -292,7 +292,6 @@ NPM_PACKAGES=(
   "@zed-industries/claude-code-acp"
   "opencode-ai"
   "@github/copilot-language-server"
-  "@builder.io/ai-shell"
   "@fission-ai/openspec@latest"
 )
 

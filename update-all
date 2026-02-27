@@ -293,6 +293,7 @@ NPM_PACKAGES=(
   "opencode-ai"
   "@github/copilot-language-server"
   "@builder.io/ai-shell"
+  "@fission-ai/openspec@latest"
 )
 
 NPM_UPDATED=0

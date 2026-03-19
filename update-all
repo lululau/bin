@@ -80,6 +80,12 @@ if [[ "$QUIET" == "false" ]] && [[ $OUTDATED_COUNT -gt 0 ]]; then
   print_color "$BLUE" "  $(brew outdated | sed 's/^/    /')"
 fi
 
+# 记录 BetterTouchTool 更新前的版本（用于判断是否需要重启）
+BTT_VERSION_BEFORE=""
+if brew list --casks 2>/dev/null | grep -q "^bettertouchtool$"; then
+  BTT_VERSION_BEFORE=$(brew info --cask bettertouchtool 2>/dev/null | head -1 | awk '{print $3}' | tr -d ',')
+fi
+
 # 升级所有 formulae
 print_color "$CYAN" "  → Upgrading formulae..."
 if brew upgrade --greedy; then
@@ -91,6 +97,21 @@ if brew upgrade --greedy; then
   fi
 else
   print_color "$RED" "  ✗ Formulae upgrade failed"
+fi
+
+# 检查 BetterTouchTool 是否被更新，如果是则重启
+if [[ -n "$BTT_VERSION_BEFORE" ]]; then
+  BTT_VERSION_AFTER=$(brew info --cask bettertouchtool 2>/dev/null | head -1 | awk '{print $3}' | tr -d ',')
+  if [[ "$BTT_VERSION_BEFORE" != "$BTT_VERSION_AFTER" ]]; then
+    print_color "$YELLOW" "  → BetterTouchTool updated ($BTT_VERSION_BEFORE → $BTT_VERSION_AFTER), restarting..."
+    BTT_PIDS=$(ps -ef | grep -i "[B]etterTouchTool" | awk '{print $2}')
+    if [[ -n "$BTT_PIDS" ]]; then
+      echo "$BTT_PIDS" | xargs kill 2>/dev/null
+      sleep 1
+      open -a "BetterTouchTool"
+      print_color "$GREEN" "  ✓ BetterTouchTool restarted"
+    fi
+  fi
 fi
 
 # 清理旧版本

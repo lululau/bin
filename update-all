@@ -313,6 +313,7 @@ NPM_PACKAGES=(
   "@zed-industries/claude-code-acp"
   "@github/copilot-language-server"
   "@fission-ai/openspec@latest"
+  "@openchamber/web"
 )
 
 NPM_UPDATED=0

@@ -88,12 +88,14 @@ fi
 
 # 升级所有 formulae
 print_color "$CYAN" "  → Upgrading formulae..."
+HOMEBREW_UPDATED=false
 if brew upgrade --greedy; then
   UPGRADED_COUNT=$(brew outdated | wc -l | tr -d ' ')
   if [[ $UPGRADED_COUNT -eq 0 ]]; then
-    print_color "$GREEN" "  ✓ All formulae up-to-date"
+    print_color "$CYAN" "  ✓ All formulae up-to-date"
   else
     print_color "$GREEN" "  ✓ Formulae upgraded"
+    HOMEBREW_UPDATED=true
   fi
 else
   print_color "$RED" "  ✗ Formulae upgrade failed"
@@ -117,7 +119,7 @@ fi
 # 清理旧版本
 print_color "$CYAN" "  → Cleaning up..."
 if brew cleanup; then
-  print_color "$GREEN" "  ✓ Homebrew cleanup completed"
+  print_color "$CYAN" "  ✓ Homebrew cleanup completed"
 else
   print_color "$YELLOW" "  ⚠️  Homebrew cleanup failed"
 fi
@@ -140,7 +142,7 @@ CASK_COUNT=$(echo "$CASKS" | grep -c '[^[:space:]]' || echo "0")
 if [[ $CASK_COUNT -eq 0 ]]; then
   print_color "$YELLOW" "  ℹ️  No casks installed"
 else
-  print_color "$GREEN" "  ✓ $CASK_COUNT casks (already updated with brew upgrade)"
+  print_color "$CYAN" "  ✓ $CASK_COUNT casks (already updated with brew upgrade)"
 fi
 
 # ============================================
@@ -291,7 +293,7 @@ fi
 mkdir -p $HOMEBREW_PREFIX/libexec
 if [ -e "$HOMEBREW_PREFIX/Cellar/plantuml" ]; then
   ln -nfs $HOMEBREW_PREFIX/Cellar/plantuml/*/libexec/plantuml.jar $HOMEBREW_PREFIX/libexec/plantuml.jar
-  print_color "$GREEN" "  ✓ plantuml symlink updated"
+  print_color "$CYAN" "  ✓ plantuml symlink updated"
 else
   print_color "$YELLOW" "  ℹ️  plantuml not installed"
 fi
@@ -455,10 +457,24 @@ EOF
 echo -e "${RESET}"
 
 # 显示各部分的更新状态
-print_color "$GREEN" "  Homebrew: ✓ Updated (includes formulae & casks)"
-print_color "$GREEN" "  NPM: ✓ $NPM_UPDATED updated, $NPM_SKIPPED skipped"
+if [[ "$HOMEBREW_UPDATED" == "true" ]]; then
+  print_color "$GREEN" "  Homebrew: ✓ Updated (includes formulae & casks)"
+else
+  print_color "$CYAN" "  Homebrew: ✓ Up-to-date (includes formulae & casks)"
+fi
+
+if [[ $NPM_UPDATED -gt 0 ]]; then
+  print_color "$GREEN" "  NPM: ✓ $NPM_UPDATED updated, $NPM_SKIPPED skipped"
+else
+  print_color "$CYAN" "  NPM: ✓ $NPM_UPDATED updated, $NPM_SKIPPED skipped"
+fi
+
 if command -v bun &> /dev/null; then
-  print_color "$GREEN" "  Bun: ✓ $BUN_UPDATED updated, $BUN_SKIPPED skipped"
+  if [[ $BUN_UPDATED -gt 0 ]]; then
+    print_color "$GREEN" "  Bun: ✓ $BUN_UPDATED updated, $BUN_SKIPPED skipped"
+  else
+    print_color "$CYAN" "  Bun: ✓ $BUN_UPDATED updated, $BUN_SKIPPED skipped"
+  fi
 fi
 
 # 如果有失败的包，显示警告
@@ -479,8 +495,19 @@ fi
 print_color "$BLUE" "  ⏱️  Total time: $TIME_STR"
 
 # 最终消息
+# 计算是否有实际更新
+TOTAL_UPDATED=0
+if [[ "$HOMEBREW_UPDATED" == "true" ]]; then
+  TOTAL_UPDATED=$((TOTAL_UPDATED + 1))
+fi
+TOTAL_UPDATED=$((TOTAL_UPDATED + NPM_UPDATED + BUN_UPDATED))
+
 if [[ $NPM_FAILED -eq 0 ]]; then
-  print_color "$GREEN" "  ✨ All updates completed!"
+  if [[ $TOTAL_UPDATED -gt 0 ]]; then
+    print_color "$GREEN" "  ✨ All updates completed!"
+  else
+    print_color "$CYAN" "  ✨ All updates completed (nothing to update)"
+  fi
 else
   print_color "$YELLOW" "  ⚠️  Some updates encountered errors"
 fi

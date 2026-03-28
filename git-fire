@@ -1,20 +1,175 @@
 #!/usr/bin/env zsh
 
-script_dir=$(cd $(dirname $0); pwd)
-cd "$(git rev-parse --show-toplevel)"
-
-git add .
-
-git commit -m "GIT ON FIRE: $(date '+%F %T')"
-
-if [[ "$?" == 0 ]] {
-     echo "Saved Commit: "
-     echo '=================='
-     echo
-
-     git log -1
-
-     echo
-
-     git reset --hard 'HEAD^'
+cd "$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "error: not in a git repository" >&2
+  exit 1
 }
+
+# --- Core: discover all fire commits ---
+# Returns lines of "hash|timestamp", newest first, deduplicated.
+_find_fire_commits() {
+  local -a commits
+
+  # Primary: reflog
+  # %gs includes action prefix (e.g. "commit: GIT ON FIRE: ..."), so we extract
+  # the hash and fetch the clean subject via git log
+  local -a reflog_hashes
+  reflog_hashes=(${(f)"$(git reflog --all --grep='GIT ON FIRE:' --format='%H' 2>/dev/null)"})
+  for h in "${reflog_hashes[@]}"; do
+    local subject=$(git log -1 --format='%s' "$h" 2>/dev/null)
+    if [[ -n "$subject" ]]; then
+      commits+=("$h|$subject")
+    fi
+  done
+
+  # Fallback: fsck for dangling commits (reflog expired but not GC'd)
+  if [[ ${#commits} -eq 0 ]]; then
+    local hash msg
+    while IFS= read -r line; do
+      hash=$(echo "$line" | awk '{print $3}')
+      msg=$(git log -1 --format='%s' "$hash" 2>/dev/null)
+      if [[ "$msg" == GIT\ ON\ FIRE:* ]]; then
+        commits+=("$hash|$msg")
+      fi
+    done < <(git fsck --unreachable --no-reflogs 2>/dev/null | grep 'unreachable commit')
+  fi
+
+  if [[ ${#commits} -eq 0 ]]; then
+    return
+  fi
+
+  # Deduplicate by hash, keep first occurrence
+  local -A seen
+  local -a unique
+  for entry in "${commits[@]}"; do
+    local h="${entry%%|*}"
+    if [[ -z ${seen[$h]} ]]; then
+      seen[$h]=1
+      unique+=("$entry")
+    fi
+  done
+
+  # Sort by timestamp (extracted from message) descending
+  print -l "${unique[@]}" | sort -t'|' -k2 -r
+}
+
+# --- Subcommand: list ---
+fire_list() {
+  local -a entries
+  entries=(${(f)"$(_find_fire_commits)"})
+
+  if [[ ${#entries} -eq 0 ]]; then
+    echo "No fire commits found."
+    return
+  fi
+
+  local i=1
+  for entry in "${entries[@]}"; do
+    local hash="${entry%%|*}"
+    local short="${hash:0:7}"
+    local msg="${entry#*|}"
+    local count=$(git diff-tree --no-commit-id --name-only -r "$hash" 2>/dev/null | wc -l | tr -d ' ')
+    printf "#%-3d %s  %s  %s files\n" "$i" "$short" "$msg" "$count"
+    ((i++))
+  done
+}
+
+# --- Subcommand: show ---
+fire_show() {
+  local n="$1"
+  if [[ -z "$n" || "$n" -lt 1 ]]; then
+    echo "error: usage: git fire show <n>" >&2
+    return 1
+  fi
+
+  local -a entries
+  entries=(${(f)"$(_find_fire_commits)"})
+
+  if [[ ${#entries} -eq 0 ]]; then
+    echo "No fire commits found."
+    return 1
+  fi
+
+  if [[ "$n" -gt ${#entries} ]]; then
+    echo "error: index $n out of range (1-${#entries})" >&2
+    return 1
+  fi
+
+  local hash="${entries[$n]%%|*}"
+  git show "$hash"
+}
+
+# --- Subcommand: apply ---
+fire_apply() {
+  local n="$1"
+  if [[ -z "$n" || "$n" -lt 1 ]]; then
+    echo "error: usage: git fire apply <n>" >&2
+    return 1
+  fi
+
+  local -a entries
+  entries=(${(f)"$(_find_fire_commits)"})
+
+  if [[ ${#entries} -eq 0 ]]; then
+    echo "No fire commits found."
+    return 1
+  fi
+
+  if [[ "$n" -gt ${#entries} ]]; then
+    echo "error: index $n out of range (1-${#entries})" >&2
+    return 1
+  fi
+
+  local hash="${entries[$n]%%|*}"
+  git cherry-pick --no-commit "$hash"
+
+  if [[ "$?" -ne 0 ]]; then
+    echo
+    echo "Conflicts detected. Resolve them, then stage and commit as needed."
+    return 1
+  fi
+
+  echo "Applied fire commit $hash to working tree."
+}
+
+# --- Original fire behavior ---
+fire() {
+  git add .
+
+  git commit -m "GIT ON FIRE: $(date '+%F %T')"
+
+  if [[ "$?" == 0 ]] {
+    echo "Saved Commit: "
+    echo '=================='
+    echo
+
+    git log -1
+
+    echo
+
+    git reset --hard 'HEAD^'
+  }
+}
+
+# --- Usage ---
+_usage() {
+  cat <<'EOF'
+usage: git fire [<command>]
+
+Commands:
+  (none)    Save all changes and reset working tree
+  list      List all fire commits
+  show <n>  Show full diff of the nth fire commit
+  apply <n> Restore nth fire commit changes to working tree
+EOF
+}
+
+# --- Dispatch ---
+case "${1:-}" in
+  list)   fire_list ;;
+  show)   fire_show "$2" ;;
+  apply)  fire_apply "$2" ;;
+  -h|--help|help) _usage ;;
+  "")     fire ;;
+  *)      echo "error: unknown command '$1'" >&2; _usage; exit 1 ;;
+esac

@@ -316,6 +316,7 @@ NPM_PACKAGES=(
   "@github/copilot-language-server"
   "@fission-ai/openspec@latest"
   "@openchamber/web"
+  "@jackwener/opencli"
 )
 
 NPM_UPDATED=0

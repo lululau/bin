@@ -317,6 +317,7 @@ NPM_PACKAGES=(
   "@fission-ai/openspec@latest"
   "@openchamber/web"
   "@jackwener/opencli"
+  "@getpaseo/cli"
 )
 
 NPM_UPDATED=0

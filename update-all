@@ -312,6 +312,7 @@ print_color "$BLUE" "  → Using official npm registry via --registry option"
 
 # 需要更新的 NPM 包列表
 NPM_PACKAGES=(
+  "@anthropic-ai/claude-code@latest"
   "@agentclientprotocol/claude-agent-acp"
   "@github/copilot-language-server"
   "@fission-ai/openspec@latest"

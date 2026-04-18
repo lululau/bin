@@ -1,0 +1,486 @@
+#!/usr/bin/env python3
+"""Export Cursor IDE chat/composer sessions to Markdown.
+
+Usage:
+  # List sessions for current project
+  python3 cursor-export-chat.py --list
+
+  # List all sessions across all projects
+  python3 cursor-export-chat.py --list --all
+
+  # Limit output
+  python3 cursor-export-chat.py --list --limit 10
+
+  # Export a specific session by ID
+  python3 cursor-export-chat.py --export <session-id>
+
+  # Export and save to file
+  python3 cursor-export-chat.py --export <session-id> --output session.md
+
+  # Export agent transcript
+  python3 cursor-export-chat.py --export-transcript <project-name>/<transcript-id>
+
+  # List agent transcripts (current project by default, --all for all)
+  python3 cursor-export-chat.py --list-transcripts
+  python3 cursor-export-chat.py --list-transcripts --all
+
+Data sources:
+  - Composer/Chat sessions: ~/Library/Application Support/Cursor/User/globalStorage/state.vscdb
+  - Agent transcripts: ~/.cursor/projects/<project>/agent-transcripts/
+"""
+
+import argparse
+import json
+import os
+import sqlite3
+import sys
+from datetime import datetime
+from pathlib import Path
+from urllib.parse import unquote
+
+CURSOR_DB = Path(os.path.expanduser(
+    "~/Library/Application Support/Cursor/User/globalStorage/state.vscdb"
+))
+CURSOR_PROJECTS = Path(os.path.expanduser("~/.cursor/projects"))
+
+
+def ts_to_date(ts_ms):
+    """Convert millisecond timestamp to local time string."""
+    if not ts_ms:
+        return ""
+    try:
+        dt = datetime.fromtimestamp(ts_ms / 1000)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OSError):
+        return ""
+
+
+def build_ws_id_to_path_map():
+    """Build workspace ID -> local path mapping from workspace.json files."""
+    ws_root = Path(os.path.expanduser(
+        "~/Library/Application Support/Cursor/User/workspaceStorage"
+    ))
+    mapping = {}
+    if not ws_root.exists():
+        return mapping
+    for d in ws_root.iterdir():
+        ws_json = d / "workspace.json"
+        if ws_json.exists():
+            try:
+                data = json.loads(ws_json.read_text())
+                folder = data.get("folder", "") or data.get("workspace", "")
+                if folder.startswith("file://"):
+                    folder = unquote(folder[7:])
+                if folder:
+                    mapping[d.name] = folder
+            except (json.JSONDecodeError, OSError):
+                pass
+    return mapping
+
+
+def get_cwd_project_paths():
+    """Get the set of filesystem paths associated with the current working directory."""
+    cwd = os.getcwd()
+    paths = {cwd}
+    # Also add parent paths for workspace matching
+    # e.g. if cwd is ~/sd/infe and workspace is ~/sd/workspaces/finsight-workspace.code-workspace
+    return paths
+
+
+def is_session_for_cwd(comp, ws_map):
+    """Check if a composer session belongs to the current working directory."""
+    ws = comp.get("workspaceIdentifier", {})
+    ws_id = ws.get("id", "")
+    ws_uri = ws.get("uri", {}).get("fsPath", "") if ws.get("uri") else ""
+
+    # Direct path match
+    if ws_uri:
+        cwd = os.getcwd()
+        if ws_uri == cwd or cwd.startswith(ws_uri):
+            return True
+
+    # Map workspace ID to path
+    if ws_id and ws_id in ws_map:
+        ws_path = ws_map[ws_id]
+        cwd = os.getcwd()
+        if ws_path == cwd or cwd.startswith(ws_path) or ws_path.startswith(cwd):
+            return True
+
+    return False
+
+
+def extract_text_from_content(content):
+    """Extract plain text from message content."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        texts = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                texts.append(item.get("text", ""))
+        return "\n".join(texts)
+    return str(content)
+
+
+def get_transcript_title(jsonl_path):
+    """Extract a short title from the first user message in a transcript."""
+    try:
+        with open(jsonl_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                entry = json.loads(line)
+                if entry.get("role") != "user":
+                    continue
+                content = entry.get("message", {}).get("content", "")
+                text = extract_text_from_content(content)
+                # Strip XML tags and get first meaningful line
+                lines = text.strip().split("\n")
+                for l in lines:
+                    l = l.strip()
+                    if l and not l.startswith("<") and len(l) > 3:
+                        return l[:80]
+    except (json.JSONDecodeError, OSError):
+        pass
+    return ""
+
+
+def format_markdown_composer(session_data, session_id, header_info=None):
+    """Convert a composer session to Markdown."""
+    lines = []
+
+    name = session_data.get("name", "")
+    created = ts_to_date(session_data.get("createdAt"))
+    text = session_data.get("text", "")
+    conversation = session_data.get("conversation", [])
+
+    lines.append(f"# Cursor Chat: {name or session_id}")
+    lines.append("")
+    lines.append(f"- **Session ID**: `{session_id}`")
+    if created:
+        lines.append(f"- **Created**: {created}")
+    lines.append(f"- **Mode**: {session_data.get('unifiedMode', 'unknown')}")
+    if header_info:
+        subtitle = header_info.get("subtitle", "")
+        if subtitle:
+            lines.append(f"- **Summary**: {subtitle}")
+        ws = header_info.get("workspaceIdentifier", {})
+        if ws and ws.get("uri"):
+            lines.append(f"- **Workspace**: `{ws['uri'].get('fsPath', '')}`")
+        branch = header_info.get("committedToBranch", "")
+        if branch:
+            lines.append(f"- **Branch**: `{branch}`")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    if text:
+        lines.append("## Prompt")
+        lines.append("")
+        lines.append(text.strip())
+        lines.append("")
+
+    if conversation:
+        lines.append("## Conversation")
+        lines.append("")
+        for msg in conversation:
+            msg_type = msg.get("type", 0)
+            msg_text = msg.get("text", "")
+            if not msg_text:
+                continue
+            if msg_type == 1:
+                lines.append("### User")
+            else:
+                lines.append("### Assistant")
+            lines.append("")
+            lines.append(msg_text.strip())
+            lines.append("")
+
+    return "\n".join(lines)
+
+
+def format_markdown_transcript(transcript_path, transcript_id):
+    """Convert an agent transcript JSONL to Markdown."""
+    lines = []
+
+    lines.append(f"# Cursor Agent Transcript: {transcript_id}")
+    lines.append("")
+    lines.append(f"- **Transcript ID**: `{transcript_id}`")
+    lines.append(f"- **Source**: `{transcript_path}`")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    jsonl_file = Path(transcript_path)
+    if jsonl_file.is_dir():
+        jsonl_file = jsonl_file / f"{transcript_id}.jsonl"
+
+    if not jsonl_file.exists():
+        if Path(transcript_path).is_dir():
+            jsonl_files = list(Path(transcript_path).glob("*.jsonl"))
+            if jsonl_files:
+                jsonl_file = jsonl_files[0]
+
+    if not jsonl_file.exists():
+        lines.append("*Transcript file not found.*")
+        return "\n".join(lines)
+
+    lines.append("## Conversation")
+    lines.append("")
+
+    with open(jsonl_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            role = entry.get("role", "")
+            message = entry.get("message", {})
+            content = message.get("content", "")
+            text = extract_text_from_content(content)
+            if not text:
+                continue
+
+            if role == "user":
+                lines.append("### User")
+            elif role == "assistant":
+                lines.append("### Assistant")
+            else:
+                lines.append(f"### {role.title()}")
+            lines.append("")
+            lines.append(text.strip())
+            lines.append("")
+
+    return "\n".join(lines)
+
+
+def list_sessions(limit=10, show_all=False):
+    """List recent composer sessions, filtered to current project unless --all."""
+    if not CURSOR_DB.exists():
+        print(f"Error: Cursor database not found at {CURSOR_DB}", file=sys.stderr)
+        sys.exit(1)
+
+    ws_map = build_ws_id_to_path_map()
+
+    conn = sqlite3.connect(str(CURSOR_DB))
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT value FROM ItemTable WHERE key = 'composer.composerHeaders'"
+    )
+    row = cur.fetchone()
+    if not row:
+        print("No sessions found.", file=sys.stderr)
+        conn.close()
+        return
+
+    headers_data = json.loads(row[0])
+    all_composers = headers_data.get("allComposers", [])
+
+    # Filter to current project unless --all
+    if not show_all:
+        filtered = [c for c in all_composers if is_session_for_cwd(c, ws_map)]
+        if not filtered:
+            # Fallback: if no sessions match CWD, show all
+            filtered = all_composers
+            print("(No sessions for current directory, showing all)\n", file=sys.stderr)
+        all_composers = filtered
+
+    all_composers.sort(key=lambda x: x.get("lastUpdatedAt", 0), reverse=True)
+
+    print(f"{'#':<4} {'Session ID':<40} {'Updated':<20} {'Name'}")
+    print("-" * 120)
+
+    shown = all_composers[:limit] if limit else all_composers
+    for i, comp in enumerate(shown):
+        cid = comp.get("composerId", "")
+        updated = ts_to_date(comp.get("lastUpdatedAt"))
+        name = (comp.get("name", "") or comp.get("subtitle", ""))[:60]
+        print(f"{i:<4} {cid:<40} {updated:<20} {name}")
+
+        if i < 3:
+            cur.execute(
+                "SELECT value FROM cursorDiskKV WHERE key = ?",
+                (f"composerData:{cid}",),
+            )
+            data_row = cur.fetchone()
+            if data_row and data_row[0]:
+                try:
+                    data = json.loads(data_row[0])
+                    text = data.get("text", "")
+                    if text:
+                        preview = text[:80].replace("\n", " ")
+                        print(f"     Prompt: {preview}...")
+                except json.JSONDecodeError:
+                    pass
+
+    print(f"\nShowing {len(shown)} of {len(all_composers)} sessions")
+    print("Use --export <session-id> to export a specific session")
+    conn.close()
+
+
+def list_transcripts(show_all=False):
+    """List agent transcripts, filtered to current project unless --all."""
+    if not CURSOR_PROJECTS.exists():
+        print(f"Error: Cursor projects directory not found at {CURSOR_PROJECTS}", file=sys.stderr)
+        return
+
+    cwd = os.getcwd()
+    entries = []
+
+    for project_dir in sorted(CURSOR_PROJECTS.iterdir()):
+        transcript_dir = project_dir / "agent-transcripts"
+        if not transcript_dir.exists():
+            continue
+
+        # Filter: match project directory name against cwd path components
+        if not show_all:
+            # Convert project dir name to a path for matching
+            # e.g. "Users-liuxiang-cascode-github-com-Mark" -> /Users/liuxiang/cascode/github.com/Mark
+            parts = project_dir.name.split("-")
+            # Reconstruct: first part is Users, second liuxiang, rest is path
+            if len(parts) >= 2:
+                proj_path = "/" + "/".join(parts)
+            else:
+                proj_path = project_dir.name
+
+            if not (cwd.startswith(proj_path) or proj_path.startswith(cwd)):
+                continue
+
+        for t in sorted(transcript_dir.iterdir()):
+            jsonl_file = t / f"{t.name}.jsonl" if t.is_dir() else t
+            if not jsonl_file.exists():
+                if t.is_dir():
+                    jsonl_files = list(t.glob("*.jsonl"))
+                    jsonl_file = jsonl_files[0] if jsonl_files else None
+                if not jsonl_file or not jsonl_file.exists():
+                    continue
+
+            mtime = jsonl_file.stat().st_mtime
+            created = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+            title = get_transcript_title(jsonl_file)
+            entries.append((project_dir.name, t.name, created, title))
+
+    if not entries:
+        if show_all:
+            print("No transcripts found.", file=sys.stderr)
+        else:
+            print("No transcripts for current directory. Use --all to see all.", file=sys.stderr)
+        return
+
+    # Sort by created time descending
+    entries.sort(key=lambda x: x[2], reverse=True)
+
+    print(f"{'Project':<45} {'Transcript ID':<38} {'Created':<18} {'Title'}")
+    print("-" * 140)
+    for proj, tid, created, title in entries:
+        print(f"{proj:<45} {tid:<38} {created:<18} {title}")
+
+
+def export_session(session_id, output_file=None):
+    """Export a specific composer session to Markdown."""
+    if not CURSOR_DB.exists():
+        print(f"Error: Cursor database not found at {CURSOR_DB}", file=sys.stderr)
+        sys.exit(1)
+
+    conn = sqlite3.connect(str(CURSOR_DB))
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT value FROM cursorDiskKV WHERE key = ?",
+        (f"composerData:{session_id}",),
+    )
+    row = cur.fetchone()
+    if not row or not row[0]:
+        print(f"Error: Session '{session_id}' not found.", file=sys.stderr)
+        conn.close()
+        sys.exit(1)
+
+    session_data = json.loads(row[0])
+
+    header_info = None
+    cur.execute(
+        "SELECT value FROM ItemTable WHERE key = 'composer.composerHeaders'"
+    )
+    header_row = cur.fetchone()
+    if header_row:
+        headers_data = json.loads(header_row[0])
+        for comp in headers_data.get("allComposers", []):
+            if comp.get("composerId") == session_id:
+                header_info = comp
+                break
+
+    conn.close()
+
+    md = format_markdown_composer(session_data, session_id, header_info)
+
+    if output_file:
+        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+        Path(output_file).write_text(md, encoding="utf-8")
+        print(f"Exported to {output_file}")
+    else:
+        print(md)
+
+
+def export_transcript(transcript_ref, output_file=None):
+    """Export an agent transcript to Markdown."""
+    parts = transcript_ref.split("/", 1)
+    if len(parts) == 2:
+        project_name, transcript_id = parts
+    else:
+        transcript_id = parts[0]
+        project_name = None
+
+    if project_name:
+        transcript_path = CURSOR_PROJECTS / project_name / "agent-transcripts" / transcript_id
+    else:
+        for project_dir in CURSOR_PROJECTS.iterdir():
+            candidate = project_dir / "agent-transcripts" / transcript_id
+            if candidate.exists():
+                transcript_path = candidate
+                break
+        else:
+            print(f"Error: Transcript '{transcript_id}' not found.", file=sys.stderr)
+            sys.exit(1)
+
+    md = format_markdown_transcript(transcript_path, transcript_id)
+
+    if output_file:
+        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+        Path(output_file).write_text(md, encoding="utf-8")
+        print(f"Exported to {output_file}")
+    else:
+        print(md)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Export Cursor chat sessions to Markdown")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--list", "-l", action="store_true", help="List recent sessions")
+    group.add_argument("--export", "-e", metavar="SESSION_ID", help="Export a composer/chat session")
+    group.add_argument("--export-transcript", "-t", metavar="PROJECT/ID", help="Export an agent transcript")
+    group.add_argument("-L", "--list-transcripts", action="store_true", help="List available agent transcripts")
+
+    parser.add_argument("--all", "-a", action="store_true", help="Show sessions from all projects (default: current project only)")
+    parser.add_argument("--limit", "-n", type=int, default=0, help="Max number of sessions to list (default: show all)")
+    parser.add_argument("--output", "-o", help="Output file path (default: stdout)")
+
+    args = parser.parse_args()
+
+    if args.list:
+        list_sessions(args.limit, show_all=args.all)
+    elif args.list_transcripts:
+        list_transcripts(show_all=args.all)
+    elif args.export:
+        export_session(args.export, args.output)
+    elif args.export_transcript:
+        export_transcript(args.export_transcript, args.output)
+
+
+if __name__ == "__main__":
+    main()

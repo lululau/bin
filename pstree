@@ -131,7 +131,7 @@ compute_lca() {
   echo "1"
 }
 
-# 对目标 PID 分组
+# 对目标 PID 分组：按共同祖先聚类
 group_by_lca() {
   local target_pids=("$@")
 
@@ -140,22 +140,72 @@ group_by_lca() {
     return
   fi
 
-  local paths=()
+  # 初始化：每个 PID 一个组
+  local -a groups=()
   for pid in "${target_pids[@]}"; do
-    paths+=("$(trace_ancestors "$pid")")
+    groups+=("$pid")
   done
 
-  local lca
-  lca=$(compute_lca "${paths[@]}")
-
-  if [ "$lca" = "1" ]; then
-    for pid in "${target_pids[@]}"; do
-      echo "$pid"
+  # 贪心合并：找到共享非根 LCA 的组对并合并
+  local merged=1
+  while [ "$merged" -eq 1 ]; do
+    merged=0
+    local new_groups=()
+    declare -a claimed
+    for (( g=0; g<${#groups[@]}; g++ )); do
+      claimed[$g]=0
     done
-    return
-  fi
 
-  echo "${target_pids[@]}"
+    for (( g=0; g<${#groups[@]}; g++ )); do
+      [ "${claimed[$g]}" -eq 1 ] && continue
+
+      # 尝试与后续组合并
+      local merged_group="${groups[$g]}"
+      for (( h=g+1; h<${#groups[@]}; h++ )); do
+        [ "${claimed[$h]}" -eq 1 ] && continue
+
+        # 取两组的所有 PID，计算 LCA
+        local all_pids=()
+        read -ra g_pids <<< "${groups[$g]}"
+        all_pids+=("${g_pids[@]}")
+        read -ra h_pids <<< "${groups[$h]}"
+        all_pids+=("${h_pids[@]}")
+
+        local paths=()
+        for p in "${all_pids[@]}"; do
+          paths+=("$(trace_ancestors "$p")")
+        done
+
+        local pair_lca
+        pair_lca=$(compute_lca "${paths[@]}")
+
+        # 合并条件：LCA 不是根 PID 1，或者 LCA 本身是其中某个目标 PID（如 PID 1 是目标且是另一个目标的祖先）
+        local lca_is_target=0
+        for p in "${all_pids[@]}"; do
+          if [ "$p" = "$pair_lca" ]; then
+            lca_is_target=1
+            break
+          fi
+        done
+        if [ "$pair_lca" != "1" ] || [ "$lca_is_target" -eq 1 ]; then
+          # 合并
+          merged_group="${groups[$g]} ${h_pids[*]}"
+          groups[$g]="$merged_group"
+          claimed[$h]=1
+          merged=1
+        fi
+      done
+
+      new_groups+=("$merged_group")
+    done
+
+    groups=("${new_groups[@]}")
+  done
+
+  # 输出每组
+  for group in "${groups[@]}"; do
+    echo "$group"
+  done
 }
 
 # 构建标记集合

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 用法: pstree <PID> [PID2] [PID3] ...
 # 兼容 macOS 和 Linux

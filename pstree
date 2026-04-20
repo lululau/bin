@@ -1,61 +1,256 @@
 #!/bin/bash
 
-# 用法: pstree <PID>
+# 用法: pstree <PID> [PID2] [PID3] ...
 # 兼容 macOS 和 Linux
 
-set -e
+set -euo pipefail
 
-if [ -z "$1" ]; then
-  echo "用法: $0 <PID>"
+# 颜色定义
+RED='\033[1;31m'
+RESET='\033[0m'
+
+# 用法检查
+if [ $# -eq 0 ]; then
+  echo "用法: $0 <PID> [PID2] [PID3] ..." >&2
   exit 1
 fi
 
-TARGET_PID="$1"
+# 收集并验证目标 PID（去重、过滤 PID 0、检查是否存在）
+TARGET_PIDS=()
+declare -A seen_pid
+for arg in "$@"; do
+  # PID 0 不支持
+  if [ "$arg" = "0" ]; then
+    echo "pstree: 进程号 0 不支持，已跳过" >&2
+    continue
+  fi
 
-# 检查 PID 是否存在
-if ! ps -p "$TARGET_PID" >/dev/null 2>&1; then
-  echo "pstree: 进程号 $TARGET_PID 不存在"
+  # 去重
+  if [ -n "${seen_pid[$arg]+_}" ]; then
+    continue
+  fi
+  seen_pid[$arg]=1
+
+  # 检查是否存在
+  if ! ps -p "$arg" >/dev/null 2>&1; then
+    echo "pstree: 进程号 $arg 不存在，已跳过" >&2
+    continue
+  fi
+
+  TARGET_PIDS+=("$arg")
+done
+
+if [ ${#TARGET_PIDS[@]} -eq 0 ]; then
+  echo "pstree: 没有有效的进程号" >&2
   exit 1
 fi
 
-# 检查 ps 兼容性
-if ps -p $$ -o ppid= >/dev/null 2>&1; then
-  PS_CMD="ps"
-else
-  echo "不支持的 ps 版本"
-  exit 1
-fi
+# 一次性获取全部进程数据
+declare -A PPID_MAP
+declare -A CMD_MAP
+declare -A CHILDREN
 
-# 获取进程信息: PID, PPID, CMD
-get_proc_info() {
-  # $1: PID
-  $PS_CMD -p "$1" -o pid= -o ppid= -o args= | awk '{pid=$1; ppid=$2; $1=""; $2=""; sub(/^  */, ""); printf "%s • %s • %s", pid, ppid, $0}'
+while IFS= read -r line; do
+  pid=$(echo "$line" | awk '{print $1}')
+  ppid=$(echo "$line" | awk '{print $2}')
+  cmd=$(echo "$line" | awk '{$1=""; $2=""; sub(/^  */, ""); print}')
+  PPID_MAP[$pid]=$ppid
+  CMD_MAP[$pid]=$cmd
+  if [ -n "${CHILDREN[$ppid]+_}" ]; then
+    CHILDREN[$ppid]="${CHILDREN[$ppid]} $pid"
+  else
+    CHILDREN[$ppid]="$pid"
+  fi
+done < <(ps -eo pid=,ppid=,args=)
+
+# 格式化进程信息
+format_proc() {
+  local pid=$1
+  echo "${pid} • ${PPID_MAP[$pid]} • ${CMD_MAP[$pid]}"
 }
 
-# 获取所有子进程
-get_children() {
-  local ppid="$1"
-  if [[ "$(uname)" == "Darwin" ]]; then
-    $PS_CMD -eo pid=,ppid= | awk -v ppid="$ppid" '$2==ppid {print $1}'
+# 追溯祖先路径（从 target 到 PID 1，含环检测）
+# 输出: "1 pid1 pid2 ... target"（空格分隔）
+trace_ancestors() {
+  local target=$1
+  local path=()
+  declare -A visited
+  local pid=$target
+
+  while [ -n "$pid" ] && [ "$pid" != "0" ]; do
+    if [ -n "${visited[$pid]+_}" ]; then
+      break
+    fi
+    visited[$pid]=1
+    path=("$pid" "${path[@]}")
+
+    if [ "$pid" = "1" ]; then
+      break
+    fi
+    pid=${PPID_MAP[$pid]:-}
+    if [ -z "$pid" ]; then
+      break
+    fi
+  done
+
+  if [ "${path[0]}" != "1" ] && [ -n "${PPID_MAP[1]+_}" ]; then
+    path=("1" "${path[@]}")
+  fi
+
+  echo "${path[@]}"
+}
+
+# 计算多条祖先路径的最低公共祖先（LCA）
+compute_lca() {
+  local paths=("$@")
+
+  local first="${paths[0]}"
+
+  if [ ${#paths[@]} -eq 1 ]; then
+    echo "$first"
+    return
+  fi
+
+  read -ra first_arr <<< "$first"
+
+  for (( i=${#first_arr[@]}-1; i>=0; i-- )); do
+    local candidate="${first_arr[$i]}"
+    local in_all=1
+    for (( j=1; j<${#paths[@]}; j++ )); do
+      if [[ " ${paths[$j]} " != *" $candidate "* ]]; then
+        in_all=0
+        break
+      fi
+    done
+    if [ "$in_all" -eq 1 ]; then
+      echo "$candidate"
+      return
+    fi
+  done
+
+  echo "1"
+}
+
+# 对目标 PID 分组
+group_by_lca() {
+  local target_pids=("$@")
+
+  if [ ${#target_pids[@]} -eq 1 ]; then
+    echo "${target_pids[0]}"
+    return
+  fi
+
+  local paths=()
+  for pid in "${target_pids[@]}"; do
+    paths+=("$(trace_ancestors "$pid")")
+  done
+
+  local lca
+  lca=$(compute_lca "${paths[@]}")
+
+  if [ "$lca" = "1" ]; then
+    for pid in "${target_pids[@]}"; do
+      echo "$pid"
+    done
+    return
+  fi
+
+  echo "${target_pids[@]}"
+}
+
+# 构建标记集合
+build_marked_set() {
+  local lca=$1
+  shift
+  local targets=("$@")
+  declare -A marked
+
+  for target in "${targets[@]}"; do
+    local path
+    path=$(trace_ancestors "$target")
+    read -ra path_arr <<< "$path"
+    local found_lca=0
+    for pid in "${path_arr[@]}"; do
+      if [ "$pid" = "$lca" ]; then
+        found_lca=1
+      fi
+      if [ "$found_lca" -eq 1 ]; then
+        marked[$pid]=1
+      fi
+    done
+  done
+
+  echo "${!marked[@]}"
+}
+
+# 检查 PID 是否在标记集合中
+is_marked() {
+  local pid=$1
+  [[ " $MARKED_STR " == *" $pid "* ]]
+}
+
+# 高亮目标 PID
+print_node() {
+  local pid=$1
+  local info
+  info=$(format_proc "$pid")
+
+  local is_target=0
+  for t in "${TARGET_PIDS[@]}"; do
+    if [ "$pid" = "$t" ]; then
+      is_target=1
+      break
+    fi
+  done
+
+  if [ "$is_target" -eq 1 ]; then
+    echo -e "${RED}${info}${RESET}"
   else
-    $PS_CMD --no-headers -eo pid=,ppid= | awk -v ppid="$ppid" '$2==ppid {print $1}'
+    echo "$info"
   fi
 }
 
-# 递归打印树
-print_tree() {
-  local pid="$1"
-  local prefix="$2"
-  
-  local children=( $(get_children "$pid") )
-  local count=${#children[@]}
+# 渲染祖先链
+# 直接输出树到 stdout，通过全局变量 RENDERED_PREFIX 返回前缀字符串
+RENDERED_PREFIX=""
+render_ancestor_chain() {
+  local start_idx=$1
+  local end_idx=$2
+  RENDERED_PREFIX=""
+
+  for (( i=start_idx; i<=end_idx; i++ )); do
+    local pid="${ANCESTOR_CHAIN[$i]}"
+
+    if [ "$i" -eq "$start_idx" ]; then
+      print_node "$pid"
+    else
+      echo -n "${RENDERED_PREFIX}└── "
+      print_node "$pid"
+    fi
+    RENDERED_PREFIX+="    "
+  done
+}
+
+# 渲染子树
+render_subtree() {
+  local pid=$1
+  local prefix=$2
+
+  local children_str="${CHILDREN[$pid]:-}"
+  [ -z "$children_str" ] && return
+
+  local marked_children=()
+  for child in $children_str; do
+    if is_marked "$child"; then
+      marked_children+=("$child")
+    fi
+  done
+
+  local count=${#marked_children[@]}
   local i=0
 
-  for child in "${children[@]}"; do
+  for child in "${marked_children[@]}"; do
     i=$((i+1))
-    local child_info
-    child_info=$(get_proc_info "$child")
-
     local branch="├── "
     local next_prefix="│   "
 
@@ -65,57 +260,53 @@ print_tree() {
     fi
 
     echo -n "$prefix$branch"
-    if [ "$child" = "$TARGET_PID" ]; then
-      echo -e "\033[1;31m$child_info\033[0m"
-    else
-      echo "$child_info"
-    fi
-    
-    print_tree "$child" "$prefix$next_prefix"
+    print_node "$child"
+    render_subtree "$child" "$prefix$next_prefix"
   done
 }
 
-# 获取祖先链
-get_ancestors() {
-  local pid="$1"
-  local ancestors=()
-  while [ "$pid" != "0" ] && [ -n "$pid" ] && [ "$pid" != "1" ]; do
-      local ppid
-      ppid=$($PS_CMD -p "$pid" -o ppid= | tr -d ' ')
-      if [ -z "$ppid" ]; then break; fi
-      ancestors=("$pid" "${ancestors[@]}")
-      pid=$ppid
-  done
-  ancestors=("1" "${ancestors[@]}")
-  echo "${ancestors[@]}"
-}
+# ============ 主渲染逻辑 ============
 
-# 主流程
-ancestors=( $(get_ancestors "$TARGET_PID") )
+first_group=1
+groups=$(group_by_lca "${TARGET_PIDS[@]}")
 
-# 打印祖先链
-prefix=""
-for ((i=0; i<${#ancestors[@]}; i++)); do
-  pid="${ancestors[$i]}"
-  info=$(get_proc_info "$pid")
-  
-  if [ "$i" -eq 0 ]; then
-    if [ "$pid" = "$TARGET_PID" ]; then
-      echo -e "\033[1;31m$info\033[0m"
-    else
-      echo "$info"
-    fi
+while IFS= read -r group; do
+  [ -z "$group" ] && continue
+
+  if [ "$first_group" -eq 1 ]; then
+    first_group=0
   else
-    echo -n "${prefix}└── "
-    if [ "$pid" = "$TARGET_PID" ]; then
-      echo -e "\033[1;31m$info\033[0m"
-    else
-      echo "$info"
-    fi
-    prefix+="    "
+    echo ""
   fi
-done
 
-# 从目标 PID 开始打印后代
-print_tree "$TARGET_PID" "$prefix"
+  read -ra group_pids <<< "$group"
 
+  if [ ${#group_pids[@]} -eq 1 ]; then
+    local_target="${group_pids[0]}"
+    local_lca="$local_target"
+    MARKED_STR=$(build_marked_set "$local_lca" "$local_target")
+  else
+    local_paths=()
+    for p in "${group_pids[@]}"; do
+      local_paths+=("$(trace_ancestors "$p")")
+    done
+    local_lca=$(compute_lca "${local_paths[@]}")
+    MARKED_STR=$(build_marked_set "$local_lca" "${group_pids[@]}")
+  fi
+
+  local_ancestor_path=$(trace_ancestors "$local_lca")
+  read -ra ANCESTOR_CHAIN <<< "$local_ancestor_path"
+
+  local_lca_idx=-1
+  for (( i=0; i<${#ANCESTOR_CHAIN[@]}; i++ )); do
+    if [ "${ANCESTOR_CHAIN[$i]}" = "$local_lca" ]; then
+      local_lca_idx=$i
+      break
+    fi
+  done
+
+  render_ancestor_chain 0 "$local_lca_idx"
+  prefix="$RENDERED_PREFIX"
+
+  render_subtree "$local_lca" "$prefix"
+done <<< "$groups"

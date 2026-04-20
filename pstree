@@ -50,10 +50,7 @@ declare -A PPID_MAP
 declare -A CMD_MAP
 declare -A CHILDREN
 
-while IFS= read -r line; do
-  pid=$(echo "$line" | awk '{print $1}')
-  ppid=$(echo "$line" | awk '{print $2}')
-  cmd=$(echo "$line" | awk '{$1=""; $2=""; sub(/^  */, ""); print}')
+while IFS=' ' read -r pid ppid cmd; do
   PPID_MAP[$pid]=$ppid
   CMD_MAP[$pid]=$cmd
   if [ -n "${CHILDREN[$ppid]+_}" ]; then
@@ -318,7 +315,7 @@ render_subtree() {
 # ============ 主渲染逻辑 ============
 
 first_group=1
-groups=$(group_by_lca "${TARGET_PIDS[@]}")
+lca_groups=$(group_by_lca "${TARGET_PIDS[@]}")
 
 while IFS= read -r group; do
   [ -z "$group" ] && continue
@@ -359,4 +356,4 @@ while IFS= read -r group; do
   prefix="$RENDERED_PREFIX"
 
   render_subtree "$local_lca" "$prefix"
-done <<< "$groups"
+done <<< "$lca_groups"

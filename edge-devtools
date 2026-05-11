@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export CHROME_USER_DATA_DIR=~/Library/Application\ Support/Microsoft\ Edge
+
+exec chrome-devtools "$@"

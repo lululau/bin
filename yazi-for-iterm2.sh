@@ -4,4 +4,11 @@ export PATH=/Users/liuxiang/bin:/Users/liuxiang/.local/bin:/Users/liuxiang/Libra
 
 export BARE_YAZI_IN_TERM=1
 
-exec /opt/homebrew/bin/yazi
+if [ -e /opt/homebrew/bin/yazi ]; then
+  exec /opt/homebrew/bin/yazi
+elif [ -e /usr/local/bin/yazi ]; then
+  exec /usr/local/bin/yazi
+else
+  echo "yazi not found in PATH"
+  exit 1
+fi

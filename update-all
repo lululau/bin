@@ -60,6 +60,7 @@ fi
 # ============================================
 # 🍺 Homebrew 更新部分
 # ============================================
+export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
 print_quiet "${CYAN}🍺 Updating Homebrew...${RESET}"
 
 if [[ "$QUIET" == "false" ]]; then

@@ -1,0 +1,398 @@
+#!/usr/bin/env python3
+"""paseo-sessions — 列出、搜索 Paseo session，并生成 claude --resume 命令。
+
+用法:
+  paseo-sessions                       # 列出所有 session（默认只显示 claude provider）
+  paseo-sessions --all                 # 显示所有 provider
+  paseo-sessions -p claude -p codex    # 只显示指定 provider
+  paseo-sessions search <keyword>      # 按 cwd 路径或 title 模糊搜索
+  paseo-sessions resume <agent_id>     # 输出 claude --resume <session_id> 命令
+  paseo-sessions resume <agent_id> -e  # 直接执行该命令（exec 进 claude）
+
+示例:
+  paseo-sessions search invest         # 搜索 cwd 或 title 包含 invest 的 session
+  paseo-sessions search "周报"          # 搜索 title 含中文关键字的 session
+  paseo-sessions resume 3d11c2ed       # agent_id 支持前缀匹配（至少 4 字符）
+  paseo-sessions resume 3d11c2ed -e    # 直接 exec 进入 claude --resume
+"""
+
+import argparse
+import glob
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 配置
+# ─────────────────────────────────────────────────────────────────────────────
+
+PASEO_HOME = os.environ.get("PASEO_HOME", os.path.expanduser("~/.paseo"))
+AGENTS_DIR = os.path.join(PASEO_HOME, "agents")
+
+# 终端颜色（自动检测是否连接 TTY）
+_COLOR = sys.stdout.isatty()
+
+def _c(code: str, text: str) -> str:
+    if not _COLOR:
+        return text
+    return f"\033[{code}m{text}\033[0m"
+
+def _dim(t):    return _c("2", t)
+def _bold(t):   return _c("1", t)
+def _cyan(t):   return _c("36", t)
+def _yellow(t): return _c("33", t)
+def _green(t):  return _c("32", t)
+def _red(t):    return _c("31", t)
+def _blue(t):   return _c("34", t)
+def _magenta(t):return _c("35", t)
+def _gray(t):   return _c("90", t)
+
+import re as _re_mod
+
+def _visible_len(s: str) -> int:
+    """计算去除 ANSI 转义码后的可见字符宽度。"""
+    return len(_re_mod.sub(r"\033\[[0-9;]*m", "", s))
+
+def _pad(s: str, width: int) -> str:
+    """按可见宽度右填充空格（不影响 ANSI 码）。"""
+    visible = _visible_len(s)
+    return s + " " * max(0, width - visible)
+
+# Provider 颜色映射
+_PROVIDER_COLORS = {
+    "claude":  _magenta,
+    "codex":   _green,
+    "opencode":_cyan,
+    "zhipu":   _yellow,
+    "deepseek":_blue,
+    "aliyun":  _red,
+}
+
+# 状态图标
+_STATUS_ICONS = {
+    "initializing": _yellow("◌"),
+    "idle":         _green("●"),
+    "running":      _cyan("▶"),
+    "error":        _red("✗"),
+    "closed":       _gray("○"),
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 数据加载
+# ─────────────────────────────────────────────────────────────────────────────
+
+def load_agents() -> list:
+    """扫描 ~/.paseo/agents/ 下所有 JSON 文件，返回 agent 列表。"""
+    agents = []
+    pattern = os.path.join(AGENTS_DIR, "*", "*.json")
+    for path in glob.glob(pattern):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            # 跳过 internal agent（metadata generator 等）
+            if d.get("internal", False):
+                continue
+            agents.append(d)
+        except (json.JSONDecodeError, OSError):
+            continue
+    return agents
+
+
+def fmt_time(iso: str | None) -> str:
+    """将 ISO 8601 时间格式化为简短的本地时间。"""
+    if not iso:
+        return _gray("—")
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        # 显示为本地时间
+        local_dt = dt.astimezone()
+        return local_dt.strftime("%m-%d %H:%M")
+    except ValueError:
+        return _gray("?")
+
+
+def fmt_provider(p: str) -> str:
+    color_fn = _PROVIDER_COLORS.get(p, _dim)
+    return color_fn(p)
+
+
+def fmt_status(s: str) -> str:
+    icon = _STATUS_ICONS.get(s, _gray("?"))
+    return f"{icon} {s}"
+
+
+def fmt_cwd(cwd: str, max_len: int = 32) -> str:
+    """缩短 cwd 路径，保留最后几段。"""
+    home = os.path.expanduser("~")
+    short = cwd.replace(home, "~")
+    if len(short) > max_len:
+        short = "…" + short[-(max_len - 1):]
+    return _dim(short)
+
+
+def fmt_title(title: str | None, max_len: int = 44) -> str:
+    if not title:
+        return _gray("(无标题)")
+    if len(title) > max_len:
+        return title[:max_len - 1] + "…"
+    return title
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# list 命令
+# ─────────────────────────────────────────────────────────────────────────────
+
+def cmd_list(args):
+    agents = load_agents()
+
+    # Provider 过滤
+    if args.providers:
+        allowed = set(args.providers)
+        agents = [a for a in agents if a.get("provider") in allowed]
+    elif not args.all:
+        # 默认只显示 claude
+        agents = [a for a in agents if a.get("provider") == "claude"]
+
+    # 关键字搜索
+    if args.keyword:
+        kw = args.keyword.lower()
+        agents = [
+            a for a in agents
+            if kw in (a.get("cwd", "") + " " + (a.get("title") or "")).lower()
+        ]
+
+    # 是否显示已归档（默认显示）
+    if not args.no_archived:
+        pass  # 保持全部
+    else:
+        agents = [a for a in agents if not a.get("archivedAt")]
+
+    # 排序：按 lastActivityAt 倒序
+    agents.sort(key=lambda a: a.get("lastActivityAt", "") or "", reverse=True)
+
+    if not agents:
+        print(_yellow("未找到匹配的 session。"))
+        print(_dim("  提示：使用 --all 显示所有 provider，或 -p <provider> 指定 provider。"))
+        return 1
+
+    # 列宽定义（可见字符宽度）
+    COL_NUM, COL_ID, COL_PROV, COL_STAT, COL_DATE = 4, 14, 11, 11, 12
+
+    # 打印表头
+    hdr = (
+        f"  {_bold(_pad('#', COL_NUM))}"
+        f"{_bold(_pad('ID', COL_ID))}"
+        f"{_bold(_pad('Provider', COL_PROV))}"
+        f"{_bold(_pad('Status', COL_STAT))}"
+        f"{_bold(_pad('Updated', COL_DATE))}"
+        f"{_bold('Title')}"
+    )
+    print(hdr)
+    print(_dim("  " + "─" * 120))
+
+    for i, a in enumerate(agents, 1):
+        raw_id     = a.get("id", "")[:12]
+        provider   = a.get("provider", "?")
+        raw_status = a.get("lastStatus", "?")
+        updated    = fmt_time(a.get("lastActivityAt") or a.get("updatedAt"))
+        title      = fmt_title(a.get("title"))
+        cwd        = fmt_cwd(a.get("cwd", ""))
+        archived   = "" if not a.get("archivedAt") else _gray(" [归档]")
+
+        # 各列带颜色
+        c_num   = _gray(str(i))
+        c_id    = _cyan(raw_id)
+        c_prov  = fmt_provider(provider)
+        c_stat  = _STATUS_ICONS.get(raw_status, _gray("?")) + " " + raw_status
+        c_date  = updated
+        c_title = title + archived
+
+        row = (
+            f"  {_pad(c_num, COL_NUM)}"
+            f"{_pad(c_id, COL_ID)}"
+            f"{_pad(c_prov, COL_PROV)}"
+            f"{_pad(c_stat, COL_STAT)}"
+            f"{_pad(c_date, COL_DATE)}"
+            f"{c_title}"
+        )
+        print(row)
+        print(f"       {_gray(cwd)}")
+
+    print()
+    print(_dim(f"  共 {len(agents)} 条 session。"))
+    print(_dim(f"  使用 paseo-sessions resume <agent_id> 获取恢复命令。"))
+    return 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# resume 命令
+# ─────────────────────────────────────────────────────────────────────────────
+
+def find_agent_by_prefix(agents: list, prefix: str) -> dict | None:
+    """按 agent ID 或 persistence.sessionId 前缀匹配（至少 4 字符）。"""
+    if len(prefix) < 4:
+        print(_red("错误：agent_id 前缀至少需要 4 个字符。"), file=sys.stderr)
+        return None
+
+    matches = []
+    prefix_lower = prefix.lower()
+    for a in agents:
+        aid = a.get("id", "").lower()
+        sid = (a.get("persistence", {}) or {}).get("sessionId", "").lower()
+        if aid.startswith(prefix_lower) or sid.startswith(prefix_lower):
+            matches.append(a)
+
+    if len(matches) == 0:
+        print(_red(f"错误：未找到 ID 以 '{prefix}' 开头的 session。"), file=sys.stderr)
+        return None
+    elif len(matches) > 1:
+        print(_yellow(f"找到多个匹配，请提供更长的前缀："), file=sys.stderr)
+        for m in matches:
+            print(f"  {_cyan(m['id'][:12])}  {m.get('cwd','')}  {m.get('title','')}", file=sys.stderr)
+        return None
+    return matches[0]
+
+
+def cmd_resume(args):
+    agents = load_agents()
+    agent = find_agent_by_prefix(agents, args.agent_id)
+    if not agent:
+        return 1
+
+    aid       = agent.get("id", "")
+    provider  = agent.get("provider", "?")
+    cwd       = agent.get("cwd", "")
+    title     = agent.get("title") or "(无标题)"
+    status    = agent.get("lastStatus", "?")
+    p         = agent.get("persistence") or {}
+    session_id = p.get("sessionId", "")
+
+    # 打印 session 详情
+    print(_bold("Session 详情："))
+    print(f"  Agent ID   : {_cyan(aid)}")
+    print(f"  Session ID : {_cyan(session_id or '(无)')}")
+    print(f"  Provider   : {fmt_provider(provider)}")
+    print(f"  Status     : {fmt_status(status)}")
+    print(f"  CWD        : {cwd}")
+    print(f"  Title      : {title}")
+    print()
+
+    if provider != "claude":
+        print(_yellow(f"注意：此 session 的 provider 是 '{provider}'，不是 'claude'。"))
+        print(_yellow(f"      claude --resume 仅适用于 Claude provider 的 session。"))
+        print()
+
+    if not session_id:
+        print(_red("错误：此 session 没有 persistence.sessionId，无法生成恢复命令。"), file=sys.stderr)
+        return 1
+
+    # 检查 JSONL 文件是否存在
+    from pathlib import Path
+
+    def encode_project_dir(cwd_path: str) -> str:
+        """重现 Claude SDK 的项目目录编码逻辑。"""
+        normalized = os.path.normpath(cwd_path)
+        try:
+            normalized = os.path.realpath(normalized)
+        except OSError:
+            pass
+        replaced = _re_mod.sub(r"[^a-zA-Z0-9]", "-", normalized)
+        return replaced[:200]
+
+    config_dir = os.environ.get("CLAUDE_CONFIG_DIR", os.path.expanduser("~/.claude"))
+    encoded_cwd = encode_project_dir(cwd)
+    jsonl_path = Path(config_dir) / "projects" / encoded_cwd / f"{session_id}.jsonl"
+
+    if not jsonl_path.exists():
+        print(_yellow("警告：JSONL 文件不存在："), file=sys.stderr)
+        print(_dim(f"  {jsonl_path}"), file=sys.stderr)
+        print(_yellow("  session transcript 可能已被清理，恢复可能失败。"), file=sys.stderr)
+        print()
+
+    # 生成命令
+    resume_cmd = f"claude --resume {session_id}"
+
+    if args.exec:
+        print(_green(f"执行：{resume_cmd}"))
+        print(_dim(f"  cwd: {cwd}"))
+        print()
+        # exec 替换当前进程
+        os.chdir(cwd)
+        os.execvp("claude", ["claude", "--resume", session_id])
+    else:
+        print(_bold("恢复命令："))
+        print()
+        print(f"  {_green(resume_cmd)}")
+        print()
+        print(_dim(f"  在对应项目目录下执行上述命令即可恢复 session。"))
+        print(_dim(f"  或添加 -e 参数直接执行：paseo-sessions resume {args.agent_id} -e"))
+
+    return 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 入口
+# ─────────────────────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="paseo-sessions",
+        description="列出、搜索 Paseo session，生成 claude --resume 命令。",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例：
+  paseo-sessions                          列出所有 Claude session
+  paseo-sessions --all                    列出所有 provider 的 session
+  paseo-sessions -p claude -p zhipu       列出指定 provider
+  paseo-sessions search invest            搜索 cwd/title 包含 invest 的 session
+  paseo-sessions search 周报              搜索含中文关键字的 session
+  paseo-sessions search invest --no-archived  排除已归档 session
+  paseo-sessions resume 3d11c2ed          显示恢复命令（ID 前缀匹配，最少 4 字符）
+  paseo-sessions resume 3d11c2ed -e       直接 exec 进入 claude --resume
+""",
+    )
+
+    subparsers = parser.add_subparsers(dest="command")
+
+    # 默认参数（无子命令时生效）
+    parser.add_argument("--all", action="store_true",
+                        help="显示所有 provider（默认只显示 claude）")
+    parser.add_argument("-p", "--providers", action="append", metavar="PROVIDER",
+                        help="只显示指定 provider（可多次指定）")
+    parser.add_argument("--no-archived", action="store_true",
+                        help="排除已归档的 session")
+
+    # search 子命令
+    sp_search = subparsers.add_parser("search", help="按关键字搜索 session")
+    sp_search.add_argument("keyword", help="搜索关键字（匹配 cwd 路径或 title）")
+    sp_search.add_argument("--all", action="store_true",
+                           help="搜索所有 provider")
+    sp_search.add_argument("-p", "--providers", action="append", metavar="PROVIDER",
+                           help="只显示指定 provider")
+    sp_search.add_argument("--no-archived", action="store_true",
+                           help="排除已归档的 session")
+
+    # resume 子命令
+    sp_resume = subparsers.add_parser("resume", help="生成 claude --resume 命令")
+    sp_resume.add_argument("agent_id", help="Agent ID 或 Session ID 前缀（最少 4 字符）")
+    sp_resume.add_argument("-e", "--exec", action="store_true",
+                           help="直接 exec 执行 claude --resume（替换当前 shell）")
+
+    args = parser.parse_args()
+
+    # 无子命令时，执行 list 逻辑
+    if args.command is None:
+        args.keyword = None  # 默认列表不带关键字
+        return cmd_list(args)
+    elif args.command == "search":
+        return cmd_list(args)
+    elif args.command == "resume":
+        return cmd_resume(args)
+    else:
+        parser.print_help()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -4,6 +4,8 @@ file=$1
 
 if [[ "$file" == *.md || "$file" == *.markdown ]]; then
   open -a Typora.app "$file"
+elif [[ "$file" == *.html || "$file" == *.htm ]]; then
+  open "$file"
 else
   exec nvim "$file"
 fi

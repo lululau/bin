@@ -1,0 +1,241 @@
+#!/bin/zsh
+#
+# cpt - 使用 zsh glob 展开的文件列表进行复制或移动，保留目录结构
+#
+
+emulate -L zsh
+
+show_help() {
+    cat <<'HELP'
+cpt - 使用 zsh glob 展开的文件列表进行复制或移动，保留目录结构
+
+用法:
+    cpt [选项] <文件1> [文件2] ... <目标目录>
+
+说明:
+    文件列表由 zsh glob 在 shell 层面展开后作为参数传入。
+    最后一个参数为目标目录，其余参数为源文件。
+    复制或移动时会保留源文件的相对目录结构。
+
+    典型用法:
+      cpt **/*(.mm-10) ./output-20260606-001
+
+    等价于:
+      for i (**/*(.mm-10)); { mkdir -p ./output-20260606-001/${i:h}; cp $i ./output-20260606-001/$i; }
+
+选项:
+    -n        Dry-run 模式，仅输出将要执行的命令，不实际执行
+    --mv      移动文件（默认为复制）
+    -l        仅列出将要被复制/移动的源文件路径
+    -h, --help 显示此帮助信息
+
+示例:
+    # 复制最近 10 分钟修改的普通文件到 output 目录
+    cpt **/*(.mm-10) ./output-20260606-001
+
+    # 移动所有 .log 文件到 archive 目录
+    cpt --mv **/*.log ./archive
+
+    # Dry-run: 查看将执行的操作
+    cpt -n **/*(.mm-10) ./output
+
+    # 仅列出匹配的文件
+    cpt -l **/*(.mm-10) ./output
+
+    # 复制大于 1MB 的文件
+    cpt **/*(L+1m) ./large-files
+
+    # 移动最近修改的前 5 个文件
+    cpt --mv **/*(.om[1,5]) ./recent
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Zsh Filename Generation (文件名生成) 常用用法速查
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【Glob 操作符】
+
+  *              匹配任意字符串（包括空字符串）
+  ?              匹配任意单个字符
+  [abc]          匹配括号内的任意一个字符
+  [^abc]         匹配不在括号内的任意字符（同 [!abc]）
+  <X-Y>          匹配 X 到 Y 之间的数字，如 <1-100>
+  X|Y            匹配 X 或 Y（需 EXTENDED_GLOB）
+  ^X             匹配不匹配 X 的内容（需 EXTENDED_GLOB）
+  X~Y            匹配 X 但排除匹配 Y 的部分
+  X#             匹配零个或多个 X
+  X##            匹配一个或多个 X
+
+【递归匹配】
+
+  **/*           递归匹配所有文件和目录
+  (*/)#          等价于递归目录前缀 **/
+
+【Glob 限定符 — 文件类型】
+
+  (/)            仅目录
+  (.)            仅普通文件
+  (@)            仅符号链接
+  (*)            仅可执行普通文件
+  (%)            仅设备文件
+  (F)            仅非空目录
+
+【Glob 限定符 — 权限】
+
+  (r)            所有者可读
+  (w)            所有者可写
+  (x)            所有者可执行
+  (R/W/X)        所有人可读/写/执行
+  (s)            设置了 setuid
+  (t)            设置了 sticky bit
+
+【Glob 限定符 — 时间】
+
+  (mN)           恰好 N 天前修改
+  (m-N)          N 天内修改
+  (m+N)          超过 N 天修改
+  (mmN)          分钟级修改时间，如 mm-10 = 10 分钟内
+  (mhN)          小时级修改时间
+  (a/c)          访问时间 / inode 变更时间（用法同 m）
+
+【Glob 限定符 — 大小】
+
+  (LN)           文件大小恰好 N 字节
+  (L+N)          大于 N 字节
+  (L-N)          小于 N 字节
+  支持 K/M/G/T/P 单位，如 L+1m = 大于 1MB
+
+【Glob 限定符 — 排序与筛选】
+
+  (oN)           按名称升序（默认）
+  (oL)           按大小升序
+  (om)           按修改时间升序
+  (ON/OL/Om)     对应降序
+  [BEG[,END]]    取子集，如 [1,10] 取前 10 个
+  (^)            取反后续所有限定符
+
+【Glob 限定符 — 其他】
+
+  (N)            无匹配时不报错（NULLGLOB）
+  (D)            匹配以 . 开头的隐藏文件（GLOBDOTS）
+  (n)            按数字排序（NUMERICGLOBSORT）
+
+【Globbing Flags】
+
+  (#i)           大小写不敏感匹配
+  (#cN,M)        匹配 N 到 M 次（类似正则 {N,M}）
+
+【常用组合示例】
+
+  **/*(.mm-10)              最近 10 分钟内修改的所有普通文件
+  **/*.log(L+1m)            所有大于 1MB 的 .log 文件
+  **/*(^/)                  所有非目录文件
+  **/*(.Om[1,5])            修改时间最晚的 5 个普通文件
+  **/*.jpg~*/thumb*         所有 .jpg 但排除 thumb 开头的路径
+  **/*(.L+0)                所有非空普通文件
+  *.jpg(#i)                 大小写不敏感匹配 .jpg/.JPG/.Jpg 等
+  *(.mm-1L+1k)              最近 1 分钟修改且大于 1KB 的文件
+  **/*(.^F)                 所有非空普通文件（排除空文件）
+
+HELP
+}
+
+# ── Parse options ──
+
+local dry_run=0
+local move_mode=0
+local list_only=0
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -n)      dry_run=1; shift ;;
+        --mv)    move_mode=1; shift ;;
+        -l)      list_only=1; shift ;;
+        -h|--help) show_help; exit 0 ;;
+        --)      shift; break ;;
+        -*)      print "错误: 未知选项 $1" >&2; print "使用 -h 查看帮助" >&2; exit 1 ;;
+        *)       break ;;
+    esac
+done
+
+# ── Validate arguments ──
+
+if (( $# < 2 )); then
+    print "错误: 需要至少一个源文件和一个目标目录" >&2
+    print "用法: cpt [选项] <文件1> [文件2] ... <目标目录>" >&2
+    print "使用 -h 查看帮助" >&2
+    exit 1
+fi
+
+# Last argument is the target directory
+local -a sources=("$@")
+local target_dir="${sources[-1]}"
+sources[-1]=()
+
+if (( ${#sources} == 0 )); then
+    print "错误: 没有指定源文件" >&2
+    exit 1
+fi
+
+local action=cp action_text="复制"
+if (( move_mode )); then
+    action=mv
+    action_text="移动"
+fi
+
+# ── Process files ──
+
+local count=0 skip=0
+local src dest dest_dir
+
+for src in "${sources[@]}"; do
+    if [[ ! -e "$src" ]]; then
+        print "跳过: $src (不存在)" >&2
+        (( skip++ ))
+        continue
+    fi
+
+    # -l: just print source paths
+    if (( list_only )); then
+        print -r -- "$src"
+        (( count++ ))
+        continue
+    fi
+
+    dest_dir="$target_dir/${src:h}"
+    dest="$target_dir/$src"
+
+    # -n: dry-run, print commands
+    if (( dry_run )); then
+        print "mkdir -p ${(q)dest_dir}"
+        print "$action ${(q)src} ${(q)dest}"
+        (( count++ ))
+        continue
+    fi
+
+    # Execute
+    if mkdir -p "$dest_dir" && command $action "$src" "$dest"; then
+        (( count++ ))
+    else
+        print "错误: 处理 $src 失败" >&2
+        (( skip++ ))
+    fi
+done
+
+# ── Summary ──
+
+if (( ! list_only )); then
+    if (( dry_run )); then
+        if (( count > 0 )); then
+            print "\n共 ${count} 个文件将被${action_text}"
+        fi
+    else
+        if (( count > 0 )); then
+            print "\n完成: ${count} 个文件已被${action_text}到 ${target_dir}"
+        fi
+    fi
+fi
+
+if (( skip > 0 )); then
+    print "${skip} 个文件被跳过" >&2
+    exit 1
+fi

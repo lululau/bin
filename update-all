@@ -90,7 +90,7 @@ fi
 # 升级所有 formulae
 print_color "$CYAN" "  → Upgrading formulae..."
 HOMEBREW_UPDATED=false
-if brew upgrade --greedy; then
+if brew upgrade --greedy --force; then
   UPGRADED_COUNT=$(brew outdated | wc -l | tr -d ' ')
   if [[ $UPGRADED_COUNT -eq 0 ]]; then
     print_color "$CYAN" "  ✓ All formulae up-to-date"

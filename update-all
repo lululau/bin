@@ -317,9 +317,7 @@ NPM_PACKAGES=(
   "@agentclientprotocol/claude-agent-acp"
   "@github/copilot-language-server"
   "@fission-ai/openspec"
-  "@openchamber/web"
   "@jackwener/opencli"
-  "@getpaseo/cli"
 )
 
 NPM_UPDATED=0

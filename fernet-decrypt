@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Decrypt Fernet-encrypted ENC: strings using a master key file.
+
+Usage:
+    fernet-decrypt -k /path/to/master_key 'ENC:gAAAAA...'
+    fernet-decrypt -k /path/to/master_key -e 'ENC:gAAAAA...'
+    echo 'gAAAAA...' | fernet-decrypt -k /path/to/master_key
+"""
+
+import argparse
+import base64
+import sys
+
+
+def read_master_key(path: str) -> bytes:
+    """Read the master key hex string from a file and return raw bytes."""
+    with open(path, "r") as f:
+        hex_key = f.read().strip()
+    try:
+        return bytes.fromhex(hex_key)
+    except ValueError:
+        print(f"Error: master key file does not contain valid hex: {path}", file=sys.stderr)
+        sys.exit(1)
+
+
+def decrypt(master_key_bytes: bytes, token: str) -> str:
+    """Decrypt a Fernet token using the master key bytes."""
+    from cryptography.fernet import Fernet, InvalidToken
+
+    fernet_key = base64.urlsafe_b64encode(master_key_bytes)
+    f = Fernet(fernet_key)
+    try:
+        return f.decrypt(token.encode()).decode()
+    except InvalidToken:
+        print("Error: decryption failed — invalid token or wrong master key.", file=sys.stderr)
+        sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Decrypt Fernet-encrypted ENC: strings using a master key."
+    )
+    parser.add_argument(
+        "-k", "--key",
+        required=True,
+        help="Path to the master key file (hex-encoded 32 bytes).",
+    )
+    parser.add_argument(
+        "-e", "--enc",
+        default=None,
+        help="The ENC: string to decrypt. 'ENC:' prefix is optional.",
+    )
+    parser.add_argument(
+        "token",
+        nargs="?",
+        default=None,
+        help="The ENC: string to decrypt (positional). 'ENC:' prefix is optional.",
+    )
+    args = parser.parse_args()
+
+    # Determine the encrypted token from args or stdin
+    enc_str = args.enc or args.token
+    if enc_str is None:
+        if sys.stdin.isatty():
+            print("Reading ENC: string from stdin (Ctrl-D to end):", file=sys.stderr)
+        enc_str = sys.stdin.read().strip()
+
+    if not enc_str:
+        print("Error: no ENC: string provided.", file=sys.stderr)
+        sys.exit(1)
+
+    # Strip optional ENC: prefix
+    if enc_str.startswith("ENC:"):
+        enc_str = enc_str[4:]
+
+    master_key_bytes = read_master_key(args.key)
+    plaintext = decrypt(master_key_bytes, enc_str)
+    print(plaintext)
+
+
+if __name__ == "__main__":
+    main()

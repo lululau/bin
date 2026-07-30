@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Standalone wrapper equivalent to running `ascii-box-aligner` with the same
+# arguments. Safe to call from Emacs / GUI / non-login environments where
+# ~/.local/bin may not be on PATH.
+
+export PATH="${HOME}/.local/bin:${PATH}"
+
+if ! command -v ascii-box-aligner >/dev/null 2>&1; then
+  printf 'aba: ascii-box-aligner not found (expected under ~/.local/bin or PATH)\n' >&2
+  printf '     install with: uv tool install ascii-box-aligner\n' >&2
+  exit 127
+fi
+
+# Replace this process so exit code, signals, and stdin/stdout match a direct call.
+exec ascii-box-aligner "$@"

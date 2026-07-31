@@ -3,11 +3,17 @@
 REPOS=(
   ~/bin
   ~/.config
-  ~/.emacs.d
+  ~/.emacs.spacemacs.d
   ~/.spacezsh
   ~/.oh-my-zsh
   ~/.tmux
   ~/.fzf
+  ~/global-claude
+  ~/icloud-repos/journal.git
+  ~/icloud-repos/snippets.git
+  ~/icloud-repos/webclips.git
+  ~/icloud-repos/notes.git
+  ~/icloud-repos/books.git
 )
 
 for repo in "${REPOS[@]}"; do

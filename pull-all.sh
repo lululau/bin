@@ -7,6 +7,8 @@
 #  特性 : 彩色输出 · 进度编号 · 旋转动画 · 成功/失败统计 · 自动识别裸仓库
 # ============================================================
 
+setopt NO_BG_NICE 2>/dev/null
+
 # ── 颜色（非终端输出时自动禁用）──────────────────────────────
 if [[ -t 1 ]]; then
   R=$'\033[0m';  B=$'\033[1m';  D=$'\033[2m'
@@ -40,11 +42,15 @@ hr() {
   print -r -- "${color}${s}${R}"
 }
 
-# ── 旋转动画 ─────────────────────────────────────────────────
+# ── 信号与动画管理 ───────────────────────────────────────────
 SPIN_PID=""
+JOB_PID=""
+tmpfile=""
+rcfile=""
 
 start_spinner() {
   (
+    trap 'exit 0' INT TERM
     frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
     i=0
     while :; do
@@ -57,15 +63,45 @@ start_spinner() {
 }
 
 stop_spinner() {
-  kill "$SPIN_PID" 2>/dev/null
-  wait "$SPIN_PID" 2>/dev/null
+  if [[ -n "$SPIN_PID" ]]; then
+    kill "$SPIN_PID" 2>/dev/null
+    wait "$SPIN_PID" 2>/dev/null
+    SPIN_PID=""
+  fi
   printf '\r\033[K'
 }
+
+cleanup() {
+  stop_spinner
+  if [[ -n "$JOB_PID" ]]; then
+    pkill -P "$JOB_PID" 2>/dev/null
+    kill "$JOB_PID" 2>/dev/null
+    wait "$JOB_PID" 2>/dev/null
+    JOB_PID=""
+  fi
+  [[ -n "$tmpfile" && -f "$tmpfile" ]] && rm -f "$tmpfile" 2>/dev/null
+  [[ -n "$rcfile" && -f "$rcfile" ]] && rm -f "$rcfile" 2>/dev/null
+  tmpfile=""
+  rcfile=""
+  printf '\r\033[K'
+}
+
+handle_sigint() {
+  cleanup
+  print ""
+  hr '━' "$RED"
+  print "  ${RED}${B}✘ 操作已由用户终止 (Ctrl-C)${R}"
+  hr '━' "$RED"
+  print ""
+  exit 130
+}
+
+trap 'handle_sigint' INT TERM
 
 main() {
   local total=${#REPOS[@]} i=1
   local ok=0 up_to_date=0 skip=0 fail=0
-  local repo idx branch branch_str output rc state prefix is_bare tmpfile rcfile use_spinner
+  local repo idx branch branch_str output rc state prefix is_bare use_spinner
 
   print ""
   hr '━' "$CYAN"
@@ -109,15 +145,27 @@ main() {
       tmpfile=$(mktemp); rcfile=$(mktemp)
       start_spinner
       if [[ "$is_bare" == "true" ]]; then
-        (git -C "$repo" fetch --all --prune > "$tmpfile" 2>&1; print -r -- $? > "$rcfile") &
+        (
+          trap - INT TERM
+          git -C "$repo" fetch --all --prune > "$tmpfile" 2>&1
+          print -r -- $? > "$rcfile"
+        ) &
       else
-        (cd "$repo" && git pull > "$tmpfile" 2>&1; print -r -- $? > "$rcfile") &
+        (
+          trap - INT TERM
+          cd "$repo" && git pull > "$tmpfile" 2>&1
+          print -r -- $? > "$rcfile"
+        ) &
       fi
-      wait $! 2>/dev/null
+      JOB_PID=$!
+      wait "$JOB_PID" 2>/dev/null
+      JOB_PID=""
       stop_spinner
       rc=$(<"$rcfile")
       output=$(<"$tmpfile")
-      rm -f "$tmpfile" "$rcfile"
+      rm -f "$tmpfile" "$rcfile" 2>/dev/null
+      tmpfile=""
+      rcfile=""
     else
       if [[ "$is_bare" == "true" ]]; then
         output=$(git -C "$repo" fetch --all --prune 2>&1); rc=$?
@@ -173,3 +221,4 @@ main() {
 }
 
 main "$@"
+

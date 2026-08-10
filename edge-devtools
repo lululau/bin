@@ -1,5 +1,6 @@
 #!/bin/bash
 
 export CHROME_USER_DATA_DIR=~/Library/Application\ Support/Microsoft\ Edge
+export DAEMON_IDLE_TIMEOUT_SECS=8640000
 
 exec chrome-devtools "$@"

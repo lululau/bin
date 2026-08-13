@@ -1,3 +1,31 @@
 #!/bin/bash
+# bark - 发送 Bark 推送通知
+# 用法: bark <消息文本>              (标题默认 "通知")
+#       bark <标题> <消息文本>
+# 依赖: BARK_TOKEN 环境变量、curl、python3
+# 注意: api.day.app 现已要求 POST JSON，不再支持旧的 GET /key/msg 格式
 
-http "https://api.day.app/$BARK_TOKEN/$1"
+if [ -z "$BARK_TOKEN" ]; then
+  echo "错误: 未设置 BARK_TOKEN 环境变量" >&2
+  exit 1
+fi
+
+if [ $# -ge 2 ]; then
+  TITLE="$1"
+  BODY="$2"
+else
+  TITLE="通知"
+  BODY="${1:-}"
+fi
+
+if [ -z "$BODY" ]; then
+  echo "用法: bark <消息文本>  或  bark <标题> <消息文本>" >&2
+  exit 1
+fi
+
+PAYLOAD=$(python3 -c 'import json,sys; print(json.dumps({"title":sys.argv[1],"body":sys.argv[2]}, ensure_ascii=False))' "$TITLE" "$BODY")
+
+curl -s -X POST "https://api.day.app/$BARK_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD"
+echo

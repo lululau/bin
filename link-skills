@@ -1,0 +1,241 @@
+#!/usr/bin/env bash
+#
+# ~/bin/link-skills
+#
+# 以 ~/.agents/skills 和 ~/.agents/claude-commands 为基准
+# 检查并同步 skills 及 claude-commands (符号链接/硬链接) 到各 Agent 技能目录。
+
+set -euo pipefail
+
+# 终端彩色输出
+BOLD="\033[1m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+CYAN="\033[36m"
+RED="\033[31m"
+RESET="\033[0m"
+
+# 交互式确认函数 (兼容终端、管道或重定向)
+confirm_prompt() {
+    local prompt="$1"
+    local reply=""
+    if [ -t 0 ]; then
+        read -r -p "$prompt" reply || reply=""
+    else
+        { read -r -p "$prompt" reply </dev/tty; } 2>/dev/null || { read -r -p "$prompt" reply 2>/dev/null || reply=""; }
+    fi
+    [[ "$reply" =~ ^[Yy]$ ]]
+}
+
+# 判断目标 link 是否已与 base 对齐 (支持符号链接及硬链接)
+is_link_aligned() {
+    local base="$1"
+    local target="$2"
+
+    # 如果 target 不存在且不是软链接
+    if [[ ! -e "$target" && ! -L "$target" ]]; then
+        return 1
+    fi
+
+    # 硬链接判断 (inode 相同)
+    if [[ "$target" -ef "$base" ]]; then
+        return 0
+    fi
+
+    # 符号链接判断
+    if [[ -L "$target" ]]; then
+        local link_dest
+        link_dest=$(readlink "$target" 2>/dev/null || true)
+        if [[ "$link_dest" == "$base" ]]; then
+            return 0
+        fi
+
+        local base_real target_real
+        base_real=$(realpath "$base" 2>/dev/null || true)
+        target_real=$(realpath "$target" 2>/dev/null || true)
+        if [[ -n "$base_real" && -n "$target_real" && "$base_real" == "$target_real" ]]; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+# --- 第一阶段: 以 ~/.agents/skills 为基准同步技能 ---
+sync_skills_base() {
+    local base_dir="$HOME/.agents/skills"
+    local target_dirs=(
+        "$HOME/.claude/skills"
+        "$HOME/.gemini/antigravity/skills"
+        "$HOME/.hermes/skills"
+    )
+
+    echo -e "${BOLD}${CYAN}=================================================================${RESET}"
+    echo -e "${BOLD}${CYAN}基准目录 1: ${base_dir}${RESET}"
+    echo -e "${BOLD}${CYAN}=================================================================${RESET}"
+
+    if [[ ! -d "$base_dir" ]]; then
+        echo -e "${RED}错误: 基准目录 ${base_dir} 不存在！${RESET}"
+        return 1
+    fi
+
+    for target_dir in "${target_dirs[@]}"; do
+        echo -e "\n${BOLD}检查目标目录: ${target_dir}${RESET}"
+        echo -e "-----------------------------------------------------------------"
+
+        local items_to_add=()
+        local items_to_update=()
+
+        shopt -s nullglob
+        local base_items=("$base_dir"/*)
+        shopt -u nullglob
+
+        for base_item in "${base_items[@]}"; do
+            local item_name
+            item_name=$(basename "$base_item")
+            local target_item="$target_dir/$item_name"
+
+            if [[ ! -e "$target_item" && ! -L "$target_item" ]]; then
+                items_to_add+=("$item_name")
+            elif ! is_link_aligned "$base_item" "$target_item"; then
+                items_to_update+=("$item_name")
+            fi
+        done
+
+        local total_changes=$(( ${#items_to_add[@]} + ${#items_to_update[@]} ))
+
+        if [[ $total_changes -eq 0 ]]; then
+            echo -e "${GREEN}✔ 已完全对齐，无需变更。${RESET}"
+            continue
+        fi
+
+        echo -e "${YELLOW}发现以下 ${total_changes} 项需要同步的变更:${RESET}"
+        for item in "${items_to_add[@]}"; do
+            echo -e "  ${GREEN}+ [新增/遗漏]${RESET} $item -> $base_dir/$item"
+        done
+        for item in "${items_to_update[@]}"; do
+            local cur_target=""
+            if [[ -L "$target_dir/$item" ]]; then
+                cur_target=$(readlink "$target_dir/$item" 2>/dev/null || true)
+            fi
+            echo -e "  ${YELLOW}~ [未对齐]${RESET} $item -> $base_dir/$item (当前: ${cur_target:-非正确链接})"
+        done
+
+        if confirm_prompt "确认在 ${target_dir} 中执行同步操作？[y/N]: "; then
+            mkdir -p "$target_dir"
+            local synced_count=0
+            for item in "${items_to_add[@]}" "${items_to_update[@]}"; do
+                local target_path="$target_dir/$item"
+                local base_path="$base_dir/$item"
+                rm -rf "$target_path"
+                ln -sf "$base_path" "$target_path"
+                synced_count=$((synced_count + 1))
+            done
+            echo -e "${GREEN}✔ 成功处理 ${synced_count} 个技能链接。${RESET}"
+        else
+            echo -e "${YELLOW}[!] 已跳过 ${target_dir} 的同步操作。${RESET}"
+        fi
+    done
+}
+
+# --- 第二阶段: 以 ~/.agents/claude-commands 为基准同步命令 (以 skill 代替) ---
+sync_commands_base() {
+    local base_dir="$HOME/.agents/claude-commands"
+    local target_dirs=(
+        "$HOME/.gemini/antigravity/skills"
+        "$HOME/.hermes/skills/claude-commands"
+    )
+
+    echo -e "\n${BOLD}${CYAN}=================================================================${RESET}"
+    echo -e "${BOLD}${CYAN}基准目录 2: ${base_dir}${RESET}"
+    echo -e "${BOLD}${CYAN}=================================================================${RESET}"
+
+    if [[ ! -d "$base_dir" ]]; then
+        echo -e "${RED}错误: 基准目录 ${base_dir} 不存在！${RESET}"
+        return 1
+    fi
+
+    for target_dir in "${target_dirs[@]}"; do
+        echo -e "\n${BOLD}检查目标目录 (用 skill 代替 command): ${target_dir}${RESET}"
+        echo -e "-----------------------------------------------------------------"
+
+        local items_to_add=()
+        local items_to_update=()
+
+        shopt -s nullglob
+        local base_items=("$base_dir"/*)
+        shopt -u nullglob
+
+        for base_item in "${base_items[@]}"; do
+            local item_name
+            item_name=$(basename "$base_item")
+            local stem="${item_name%.md}"
+
+            # 探测三种可能的映射位置 (SKILL.md 或直接链接)
+            local loc_skill_md="$target_dir/$stem/SKILL.md"
+            local loc_direct_name="$target_dir/$item_name"
+            local loc_direct_stem="$target_dir/$stem"
+
+            local aligned=false
+            if is_link_aligned "$base_item" "$loc_skill_md"; then
+                aligned=true
+            elif is_link_aligned "$base_item" "$loc_direct_name"; then
+                aligned=true
+            elif is_link_aligned "$base_item" "$loc_direct_stem"; then
+                aligned=true
+            fi
+
+            if ! $aligned; then
+                if [[ ! -e "$loc_skill_md" && ! -L "$loc_skill_md" && ! -e "$loc_direct_name" && ! -L "$loc_direct_name" && ! -e "$loc_direct_stem" && ! -L "$loc_direct_stem" ]]; then
+                    items_to_add+=("$item_name")
+                else
+                    items_to_update+=("$item_name")
+                fi
+            fi
+        done
+
+        local total_changes=$(( ${#items_to_add[@]} + ${#items_to_update[@]} ))
+
+        if [[ $total_changes -eq 0 ]]; then
+            echo -e "${GREEN}✔ 所有 command/skill 已完全对齐，无需变更。${RESET}"
+            continue
+        fi
+
+        echo -e "${YELLOW}发现以下 ${total_changes} 项需要同步的变更:${RESET}"
+        for item in "${items_to_add[@]}"; do
+            local stem="${item%.md}"
+            echo -e "  ${GREEN}+ [新增/遗漏]${RESET} $stem/SKILL.md -> $base_dir/$item"
+        done
+        for item in "${items_to_update[@]}"; do
+            local stem="${item%.md}"
+            echo -e "  ${YELLOW}~ [未对齐]${RESET} $stem/SKILL.md -> $base_dir/$item"
+        done
+
+        if confirm_prompt "确认在 ${target_dir} 中执行同步操作？[y/N]: "; then
+            mkdir -p "$target_dir"
+            local synced_count=0
+            for item in "${items_to_add[@]}" "${items_to_update[@]}"; do
+                local stem="${item%.md}"
+                local base_path="$base_dir/$item"
+                local skill_dir="$target_dir/$stem"
+                local skill_file="$skill_dir/SKILL.md"
+
+                mkdir -p "$skill_dir"
+                rm -f "$skill_file"
+                ln -sf "$base_path" "$skill_file"
+                synced_count=$((synced_count + 1))
+            done
+            echo -e "${GREEN}✔ 成功处理 ${synced_count} 个 command/skill 链接。${RESET}"
+        else
+            echo -e "${YELLOW}[!] 已跳过 ${target_dir} 的同步操作。${RESET}"
+        fi
+    done
+}
+
+main() {
+    sync_skills_base
+    sync_commands_base
+    echo -e "\n${BOLD}${GREEN}全部同步检查完成！${RESET}"
+}
+
+main "$@"

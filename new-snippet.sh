@@ -6,8 +6,38 @@ list_mode=false
 category_list_mode=false
 filter=""
 
+# Usage/help text
+usage() {
+    echo "Usage: $0 [-h] [-l [filter] | -c] <category>/<snippet-name> [content]"
+    echo "  -h, --help: Show this help message"
+    echo "  -l: List existing snippets, optionally filtered by the given string"
+    echo "  -c: List all categories"
+    echo "  If content is not provided as argument, it will be read from stdin"
+    echo "  Example: $0 coding/bash-loop"
+    echo "  Example: $0 coding/bash-loop 'for i in \"\$@\"; do'"
+}
+
+# Handle --help before getopts (getopts only supports short options)
+# Stop scanning at the first positional argument so content like "--help" is not mistaken for the flag
+for arg in "$@"; do
+    case "$arg" in
+        --help)
+            usage
+            exit 0
+            ;;
+        --)
+            break
+            ;;
+        -*)
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 # Process options
-while getopts "lc" opt; do
+while getopts "lch" opt; do
     case $opt in
         l)
             list_mode=true
@@ -15,8 +45,13 @@ while getopts "lc" opt; do
         c)
             category_list_mode=true
             ;;
+        h)
+            usage
+            exit 0
+            ;;
         \?)
-            echo "Invalid option: -$OPTARG"
+            echo "Invalid option: -$OPTARG" >&2
+            echo "Try '$0 --help' for more information" >&2
             exit 1
             ;;
     esac
@@ -181,12 +216,7 @@ fi
 
 # Regular snippet creation mode
 if [ -z "$1" ]; then
-    echo "Usage: $0 [-l [filter] | -c] <category>/<snippet-name> [content]"
-    echo "  -l: List existing snippets, optionally filtered by the given string"
-    echo "  -c: List all categories"
-    echo "  If content is not provided as argument, it will be read from stdin"
-    echo "  Example: $0 coding/bash-loop"
-    echo "  Example: $0 coding/bash-loop 'for i in \"\$@\"; do'"
+    usage
     exit 1
 fi
 

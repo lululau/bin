@@ -6,4 +6,4 @@
 
 unset TMUX
 unset TMUX_PANE
-exec command cursor "$@"
+exec command cursor --classic "$@"

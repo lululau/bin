@@ -209,7 +209,12 @@ main() {
   # ── 汇总 ──
   hr '━' "$CYAN"
   print "  ${B}${CYAN}📊 汇总${R}"
-  print "  ${GREEN}✅ 有更新/已同步: ${ok}${R}   ${GRAY}✔ 已是最新: ${up_to_date}${R}   ${YELLOW}⚠ 跳过: ${skip}${R}   ${RED}✘ 失败: ${fail}${R}"
+  local summary=()
+  (( ok > 0 ))         && summary+=("${GREEN}✅ 有更新/已同步: ${ok}${R}")
+  summary+=("${GRAY}✔ 已是最新: ${up_to_date}${R}")
+  (( skip > 0 ))       && summary+=("${YELLOW}⚠ 跳过: ${skip}${R}")
+  (( fail > 0 ))       && summary+=("${RED}✘ 失败: ${fail}${R}")
+  print "  ${(j:   :)summary}"
   if (( fail > 0 )); then
     print "  ${RED}${B}！！ ${fail} 个仓库拉取失败，请检查上方错误信息${R}"
   else

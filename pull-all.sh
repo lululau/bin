@@ -22,6 +22,7 @@ fi
 REPOS=(
   ~/bin
   ~/.config
+  ~/.config/nvim
   ~/.emacs.spacemacs.d
   ~/.spacezsh
   ~/.oh-my-zsh

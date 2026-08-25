@@ -28,6 +28,7 @@ REPOS=(
   ~/.oh-my-zsh
   ~/.tmux
   ~/.fzf
+  ~/.agents
   ~/global-claude
   ~/icloud-repos/journal.git
   ~/icloud-repos/snippets.git

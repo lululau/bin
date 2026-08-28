@@ -3,7 +3,7 @@
 # ~/bin/link-skills
 #
 # 以 ~/.agents/skills 和 ~/.agents/claude-commands 为基准
-# 检查并同步 skills 及 claude-commands (符号链接/硬链接) 到各 Agent 技能目录。
+# 检查并同步 skills 及 claude-commands (符号链接/硬链接) 到各 Agent 技能/命令目录。
 
 set -euo pipefail
 
@@ -232,9 +232,81 @@ sync_commands_base() {
     done
 }
 
+# --- 第三阶段: 以 ~/.agents/claude-commands 为基准同步 opencode 命令 (直接链接 .md 文件) ---
+sync_commands_opencode_base() {
+    local base_dir="$HOME/.agents/claude-commands"
+    local target_dir="$HOME/.config/opencode/command"
+
+    echo -e "\n${BOLD}${CYAN}=================================================================${RESET}"
+    echo -e "${BOLD}${CYAN}基准目录 3: ${base_dir} -> ${target_dir}${RESET}"
+    echo -e "${BOLD}${CYAN}=================================================================${RESET}"
+
+    if [[ ! -d "$base_dir" ]]; then
+        echo -e "${RED}错误: 基准目录 ${base_dir} 不存在！${RESET}"
+        return 1
+    fi
+
+    echo -e "\n${BOLD}检查目标目录 (直接链接 command): ${target_dir}${RESET}"
+    echo -e "-----------------------------------------------------------------"
+
+    local items_to_add=()
+    local items_to_update=()
+
+    shopt -s nullglob
+    local base_items=("$base_dir"/*)
+    shopt -u nullglob
+
+    for base_item in "${base_items[@]}"; do
+        local item_name
+        item_name=$(basename "$base_item")
+        local target_item="$target_dir/$item_name"
+
+        if [[ ! -e "$target_item" && ! -L "$target_item" ]]; then
+            items_to_add+=("$item_name")
+        elif ! is_link_aligned "$base_item" "$target_item"; then
+            items_to_update+=("$item_name")
+        fi
+    done
+
+    local total_changes=$(( ${#items_to_add[@]} + ${#items_to_update[@]} ))
+
+    if [[ $total_changes -eq 0 ]]; then
+        echo -e "${GREEN}✔ 所有 command 已完全对齐，无需变更。${RESET}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}发现以下 ${total_changes} 项需要同步的变更:${RESET}"
+    for item in "${items_to_add[@]}"; do
+        echo -e "  ${GREEN}+ [新增/遗漏]${RESET} $item -> $base_dir/$item"
+    done
+    for item in "${items_to_update[@]}"; do
+        local cur_target=""
+        if [[ -L "$target_dir/$item" ]]; then
+            cur_target=$(readlink "$target_dir/$item" 2>/dev/null || true)
+        fi
+        echo -e "  ${YELLOW}~ [未对齐]${RESET} $item -> $base_dir/$item (当前: ${cur_target:-普通文件/非正确链接})"
+    done
+
+    if confirm_prompt "确认在 ${target_dir} 中执行同步操作？[y/N]: "; then
+        mkdir -p "$target_dir"
+        local synced_count=0
+        for item in "${items_to_add[@]}" "${items_to_update[@]}"; do
+            local target_path="$target_dir/$item"
+            local base_path="$base_dir/$item"
+            rm -rf "$target_path"
+            ln -sf "$base_path" "$target_path"
+            synced_count=$((synced_count + 1))
+        done
+        echo -e "${GREEN}✔ 成功处理 ${synced_count} 个 command 链接。${RESET}"
+    else
+        echo -e "${YELLOW}[!] 已跳过 ${target_dir} 的同步操作。${RESET}"
+    fi
+}
+
 main() {
     sync_skills_base
     sync_commands_base
+    sync_commands_opencode_base
     echo -e "\n${BOLD}${GREEN}全部同步检查完成！${RESET}"
 }
 

@@ -3,7 +3,8 @@
 # ~/bin/link-skills
 #
 # 以 ~/.agents/skills 和 ~/.agents/claude-commands 为基准
-# 检查并同步 skills 及 claude-commands (符号链接/硬链接) 到各 Agent 技能/命令目录。
+# 检查并同步 skills 及 claude-commands (符号链接/硬链接) 到各 Agent 技能/命令目录，
+# 并清理目标目录中基准项已删除而遗留的失效托管符号链接。
 
 set -euo pipefail
 
@@ -303,10 +304,87 @@ sync_commands_opencode_base() {
     fi
 }
 
+# --- 第四阶段: 清理各目标目录中失效的托管符号链接 (悬空/基准项已删除) ---
+cleanup_stale_links() {
+    local base_dirs=(
+        "$HOME/.agents/skills"
+        "$HOME/.agents/claude-commands"
+    )
+    local scan_dirs=(
+        "$HOME/.claude/skills"
+        "$HOME/.gemini/antigravity/skills"
+        "$HOME/.hermes/skills"
+        "$HOME/.config/opencode/command"
+    )
+
+    echo -e "\n${BOLD}${CYAN}=================================================================${RESET}"
+    echo -e "${BOLD}${CYAN}第四阶段: 清理失效/多余的托管符号链接${RESET}"
+    echo -e "${BOLD}${CYAN}=================================================================${RESET}"
+
+    for scan_dir in "${scan_dirs[@]}"; do
+        if [[ ! -d "$scan_dir" ]]; then
+            continue
+        fi
+
+        echo -e "\n${BOLD}扫描目录: ${scan_dir}${RESET}"
+        echo -e "-----------------------------------------------------------------"
+
+        local stale_links=()
+        while IFS= read -r -d '' link; do
+            local raw_dest resolved managed=false
+            raw_dest=$(readlink "$link" 2>/dev/null || true)
+            resolved=$(realpath "$link" 2>/dev/null || true)
+
+            # 仅处理本脚本托管的链接: 指向 ~/.agents 基准目录的软链
+            # 指向其他来源 (如 gstack 等) 或普通文件/目录一律不动
+            for base_dir in "${base_dirs[@]}"; do
+                if [[ "$raw_dest" == "$base_dir"/* || "$resolved" == "$base_dir"/* ]]; then
+                    managed=true
+                    break
+                fi
+            done
+            $managed || continue
+
+            # 托管链接且已悬空 → 说明基准项已被删除，属于待清理的孤儿链接
+            if [[ ! -e "$link" ]]; then
+                stale_links+=("$link")
+            fi
+        done < <(find "$scan_dir" -type l -print0 2>/dev/null)
+
+        if [[ ${#stale_links[@]} -eq 0 ]]; then
+            echo -e "${GREEN}✔ 未发现失效的托管符号链接。${RESET}"
+            continue
+        fi
+
+        echo -e "${YELLOW}发现以下 ${#stale_links[@]} 个失效的托管符号链接:${RESET}"
+        for link in "${stale_links[@]}"; do
+            echo -e "  ${RED}- [悬空]${RESET} $link -> $(readlink "$link" 2>/dev/null || true)"
+        done
+
+        if confirm_prompt "确认清理 ${scan_dir} 中的失效链接？[y/N]: "; then
+            local cleaned_count=0
+            for link in "${stale_links[@]}"; do
+                rm -f "$link"
+                # 父目录若因此变空且不是扫描根目录，一并移除 (第二阶段的 stem 目录)
+                local parent_dir
+                parent_dir=$(dirname "$link")
+                if [[ "$parent_dir" != "$scan_dir" ]]; then
+                    rmdir "$parent_dir" 2>/dev/null || true
+                fi
+                cleaned_count=$((cleaned_count + 1))
+            done
+            echo -e "${GREEN}✔ 成功清理 ${cleaned_count} 个失效链接。${RESET}"
+        else
+            echo -e "${YELLOW}[!] 已跳过 ${scan_dir} 的清理操作。${RESET}"
+        fi
+    done
+}
+
 main() {
     sync_skills_base
     sync_commands_base
     sync_commands_opencode_base
+    cleanup_stale_links
     echo -e "\n${BOLD}${GREEN}全部同步检查完成！${RESET}"
 }
 

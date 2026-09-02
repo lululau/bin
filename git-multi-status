@@ -10,6 +10,11 @@
 #   - ahead/behind 基于本地 remote-tracking 引用（上次 fetch 的快照）比对，
 #     不访问网络，速度快；如需最新结果请先执行 git fetch
 #   - 未设置 upstream 的分支自动跳过 ahead/behind 检查
+#   - 无参数模式下若所有仓库都干净，输出 "All sub-directories clean"
+
+# repos: 检查到的仓库数; shown: 是否有仓库被展示（有则说明存在不干净的仓库）
+repos=0
+shown=0
 
 # 遍历当前目录下的所有文件和子目录（zsh 的 * 通配）
 for i (*) {
@@ -39,27 +44,33 @@ for i (*) {
        )
       else
         # ---- 无参数模式: 只显示需要关注的仓库，干净的静默跳过 ----
-        (cd "$i";
-         # 工作区是否有未提交改动（porcelain 短格式，干净时输出为空）
-         dirty=$(git status -s)
-         upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null)
-         ahead=0
-         behind=0
-         if [ -n "$upstream" ]; then
-           ahead=$(git rev-list --count '@{u}..HEAD')
-           behind=$(git rev-list --count 'HEAD..@{u}')
-         fi
-         # 工作区脏 / 有待 push / 有待 pull 三者满足其一即显示
-         if [ -n "$dirty" ] || (( ahead > 0 || behind > 0 )); then
-           echo -e "
+        repos=$((repos + 1))
+        # 在父 shell 中用 git -C 取状态（不进子 shell），便于循环外统计展示情况
+        # 工作区是否有未提交改动（porcelain 短格式，干净时输出为空）
+        dirty=$(git -C "$i" status -s)
+        upstream=$(git -C "$i" rev-parse --abbrev-ref '@{u}' 2>/dev/null)
+        ahead=0
+        behind=0
+        if [ -n "$upstream" ]; then
+          ahead=$(git -C "$i" rev-list --count '@{u}..HEAD')
+          behind=$(git -C "$i" rev-list --count 'HEAD..@{u}')
+        fi
+        # 工作区脏 / 有待 push / 有待 pull 三者满足其一即显示
+        if [ -n "$dirty" ] || (( ahead > 0 || behind > 0 )); then
+          shown=1
+          echo -e "
 
 
 ===================== $i =====================
-  "; git status
-           [ "$ahead" -gt 0 ] && print -P "\n  %B%F{yellow}▲ 有 $ahead 个提交尚未 push%f%b"
-           [ "$behind" -gt 0 ] && print -P "\n  %B%F{yellow}▼ 有 $behind 个提交尚未 pull%f%b"
-         fi
-        )
+  "; git -C "$i" status
+          [ "$ahead" -gt 0 ] && print -P "\n  %B%F{yellow}▲ 有 $ahead 个提交尚未 push%f%b"
+          [ "$behind" -gt 0 ] && print -P "\n  %B%F{yellow}▼ 有 $behind 个提交尚未 pull%f%b"
+        fi
       fi
     fi
   }
+
+# 检查过仓库但一个都没展示（全部干净）时给出提示；目录里没有任何仓库时不输出
+if [ -z "$1" ] && [ "$repos" -gt 0 ] && [ "$shown" -eq 0 ]; then
+  print -P "%B%F{green}✓ All sub-directories clean%f%b"
+fi

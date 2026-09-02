@@ -1,25 +1,46 @@
 #!/usr/bin/env zsh
+#
+# git-multi-status —— 批量查看当前目录下所有 git 仓库的状态
+#
+# 用法:
+#   git multi-status            只显示「有未提交改动 或 有未 push/pull 提交」的仓库
+#   git multi-status <任意参数>   显示当前目录下全部仓库（如: git multi-status all）
+#
+# 说明:
+#   - ahead/behind 基于本地 remote-tracking 引用（上次 fetch 的快照）比对，
+#     不访问网络，速度快；如需最新结果请先执行 git fetch
+#   - 未设置 upstream 的分支自动跳过 ahead/behind 检查
 
+# 遍历当前目录下的所有文件和子目录（zsh 的 * 通配）
 for i (*) {
+    # 只处理「是目录 且 含有 .git 子目录」的项，即普通 git 仓库
     if [ -d "$i" -a -d "$i/.git" ]; then
       if [ -n "$1" ]; then
+        # ---- 带参数模式: 显示全部仓库 ----
+        # 打印仓库标题，然后依次输出分支列表和完整 status
         echo -e "
 
 
 ===================== $i =====================
   "; (cd "$i"; git branch; git status;
+         # 取当前分支的 upstream 名称（如 origin/main）；无 upstream 时空，2>/dev/null 抑制报错
          upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null)
          ahead=0
          behind=0
          if [ -n "$upstream" ]; then
+           # '@{u}..HEAD': 本地领先 upstream 的提交数（待 push）
            ahead=$(git rev-list --count '@{u}..HEAD')
+           # 'HEAD..@{u}': upstream 领先本地的提交数（待 pull）
            behind=$(git rev-list --count 'HEAD..@{u}')
          fi
+         # print -P 中 %B/%b 为加粗、%F{yellow}/%f 为前景色（zsh 提示符转义）
          [ "$ahead" -gt 0 ] && print -P "  %B%F{yellow}▲ 有 $ahead 个提交尚未 push%f%b"
          [ "$behind" -gt 0 ] && print -P "  %B%F{yellow}▼ 有 $behind 个提交尚未 pull%f%b"
        )
       else
+        # ---- 无参数模式: 只显示需要关注的仓库，干净的静默跳过 ----
         (cd "$i";
+         # 工作区是否有未提交改动（porcelain 短格式，干净时输出为空）
          dirty=$(git status -s)
          upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null)
          ahead=0
@@ -28,6 +49,7 @@ for i (*) {
            ahead=$(git rev-list --count '@{u}..HEAD')
            behind=$(git rev-list --count 'HEAD..@{u}')
          fi
+         # 工作区脏 / 有待 push / 有待 pull 三者满足其一即显示
          if [ -n "$dirty" ] || (( ahead > 0 || behind > 0 )); then
            echo -e "
 

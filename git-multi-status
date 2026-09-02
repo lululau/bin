@@ -6,18 +6,36 @@ for i (*) {
         echo -e "
 
 
-  ===================== $i =====================
-  "; (cd "$i"; git branch; git status )
+===================== $i =====================
+  "; (cd "$i"; git branch; git status;
+         upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null)
+         ahead=0
+         behind=0
+         if [ -n "$upstream" ]; then
+           ahead=$(git rev-list --count '@{u}..HEAD')
+           behind=$(git rev-list --count 'HEAD..@{u}')
+         fi
+         [ "$ahead" -gt 0 ] && print -P "  %B%F{yellow}▲ 有 $ahead 个提交尚未 push%f%b"
+         [ "$behind" -gt 0 ] && print -P "  %B%F{yellow}▼ 有 $behind 个提交尚未 pull%f%b"
+       )
       else
         (cd "$i";
-         if [ -z "$(git status -s)" ]; then
-           :
-         else
+         dirty=$(git status -s)
+         upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null)
+         ahead=0
+         behind=0
+         if [ -n "$upstream" ]; then
+           ahead=$(git rev-list --count '@{u}..HEAD')
+           behind=$(git rev-list --count 'HEAD..@{u}')
+         fi
+         if [ -n "$dirty" ] || (( ahead > 0 || behind > 0 )); then
            echo -e "
 
 
-  ===================== $i =====================
+===================== $i =====================
   "; git status
+           [ "$ahead" -gt 0 ] && print -P "\n  %B%F{yellow}▲ 有 $ahead 个提交尚未 push%f%b"
+           [ "$behind" -gt 0 ] && print -P "\n  %B%F{yellow}▼ 有 $behind 个提交尚未 pull%f%b"
          fi
         )
       fi

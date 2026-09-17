@@ -1,0 +1,429 @@
+#!/usr/bin/env bash
+#
+# git-subfolder: 仅下载 Git 仓库中指定子文件夹或文件（最小下载量 + clean 目录）
+# 支持平台: GitHub, GitLab, Gitee, Bitbucket, 自建 Git
+# 原理: git clone --depth 1 --filter=blob:none --sparse + git sparse-checkout set
+#
+
+set -e
+
+show_help() {
+    cat << 'HELP_EOF'
+用法:
+  git-subfolder [选项] <Git_URL_或简写> [本地目标路径]
+
+说明:
+  使用 Git 浅克隆 (depth 1) + Blob 过滤 (blob:none) + 稀疏检出 (sparse-checkout)，
+  仅下载远程仓库中指定的子文件夹或单个文件。下载量极小且最终产物无 .git 历史残留。
+
+参数:
+  <Git_URL_或简写>
+    1. 标准网页 URL（GitHub / GitLab / Gitee 等）:
+       - https://github.com/owner/repo/tree/branch/path/to/folder
+       - https://github.com/owner/repo/blob/branch/path/to/file.ext
+       - https://gitlab.com/owner/repo/-/tree/branch/path/to/folder
+       - https://gitee.com/owner/repo/tree/branch/path/to/folder
+    2. SSH / Git 协议链接:
+       - git@github.com:owner/repo/tree/branch/path/to/folder
+       - ssh://git@gitlab.com/owner/repo/-/tree/branch/path/to/folder
+    3. 简写语法 (支持 @branch):
+       - owner/repo/path/to/folder
+       - owner/repo/path/to/folder@v1.0.0
+       - gitlab:owner/repo/path@main
+       - gitee:owner/repo/path@master
+
+  [本地目标路径] (可选)
+    指定下载后的本地目录或文件名。
+    若未指定，默认值为: {repo_name}_{file_name}
+
+选项:
+  -f, --force            若本地目标路径已存在，直接强制覆盖（不进行交互提示）
+  -c, --cat, --stdout    仅针对单文件，直接输出内容到终端/标准输出 (stdout)，不写磁盘
+  -b, --branch <ref>     显式指定分支名、Tag 或 Commit ID（优先级高于 URL 中的分支）
+  -t, --token <token>    私有仓库访问 Token（默认自动读取 GITHUB_TOKEN / GITLAB_TOKEN 环境变量）
+  --keep-path            保留子文件/文件夹在原仓库中的完整相对路径层级
+  --mirror [url]         使用 GitHub 加速镜像拉取（默认读取 GH_PROXY 环境变量）
+  --init-git             下载完成后自动在目标目录执行 git init 创建独立新仓库
+  -q, --quiet            静默模式，只在出错时输出信息
+  -h, --help             显示此帮助信息
+
+示例:
+  # 1. 简写快速下载子目录（默认存入 ./react_react-dom）
+  git-subfolder facebook/react/packages/react-dom
+
+  # 2. 简写指定分支并重命名本地目录
+  git-subfolder facebook/react/packages/react-dom@main my-dom
+
+  # 3. 查看远程文件内容（管道操作）
+  git-subfolder -c gin-gonic/gin/render/render.go@master | head -n 20
+
+  # 4. 强制覆盖并保留原路径层级
+  git-subfolder -f --keep-path https://github.com/gin-gonic/gin/tree/master/render
+
+  # 5. 下载后作为全新独立项目初始化 Git 仓库
+  git-subfolder --init-git owner/template-repo/starter-template my-new-project
+HELP_EOF
+}
+
+# 默认变量
+FORCE=0
+CAT_MODE=0
+BRANCH_OVERRIDE=""
+TOKEN="${GITHUB_TOKEN:-${GITLAB_TOKEN:-${GIT_TOKEN:-}}}"
+KEEP_PATH=0
+MIRROR="${GH_PROXY:-}"
+INIT_GIT=0
+QUIET=0
+POSITIONAL_ARGS=()
+
+# 参数解析
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    -f|--force)
+      FORCE=1
+      shift
+      ;;
+    -c|--cat|--stdout)
+      CAT_MODE=1
+      QUIET=1
+      shift
+      ;;
+    -b|--branch)
+      BRANCH_OVERRIDE="$2"
+      shift 2
+      ;;
+    --branch=*)
+      BRANCH_OVERRIDE="${1#*=}"
+      shift
+      ;;
+    -t|--token)
+      TOKEN="$2"
+      shift 2
+      ;;
+    --token=*)
+      TOKEN="${1#*=}"
+      shift
+      ;;
+    --keep-path)
+      KEEP_PATH=1
+      shift
+      ;;
+    --mirror)
+      if [[ -n "$2" && "$2" != -* ]]; then
+        MIRROR="$2"
+        shift 2
+      else
+        MIRROR="https://ghfast.top"
+        shift
+      fi
+      ;;
+    --mirror=*)
+      MIRROR="${1#*=}"
+      shift
+      ;;
+    --init-git)
+      INIT_GIT=1
+      shift
+      ;;
+    -q|--quiet)
+      QUIET=1
+      shift
+      ;;
+    --)
+      shift
+      POSITIONAL_ARGS+=("$@")
+      break
+      ;;
+    -*)
+      echo "❌ 未知选项: $1" >&2
+      echo "👉 运行 git-subfolder --help 查看用法" >&2
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ ${#POSITIONAL_ARGS[@]} -eq 0 ]; then
+  show_help
+  exit 0
+fi
+
+INPUT_URL="${POSITIONAL_ARGS[0]}"
+CUSTOM_TARGET="${POSITIONAL_ARGS[1]:-}"
+
+# Python 解析模块
+PARSED_JSON=$(python3 -c '
+import re
+import sys
+import json
+import urllib.parse
+
+raw_input = sys.argv[1].strip().rstrip("/")
+explicit_branch = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
+token = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else None
+mirror = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] else None
+
+host = "github.com"
+raw = raw_input
+
+if raw.startswith("gitlab:"):
+    host = "gitlab.com"
+    raw = raw[7:]
+elif raw.startswith("gitee:"):
+    host = "gitee.com"
+    raw = raw[6:]
+elif raw.startswith("bitbucket:"):
+    host = "bitbucket.org"
+    raw = raw[10:]
+elif raw.startswith("github:"):
+    host = "github.com"
+    raw = raw[7:]
+
+is_shorthand = not ("://" in raw or raw.startswith("git@") or "/tree/" in raw or "/blob/" in raw or "/-/tree/" in raw or "/-/blob/" in raw)
+
+if is_shorthand:
+    branch = None
+    if "@" in raw:
+        raw_path, branch = raw.rsplit("@", 1)
+    else:
+        raw_path = raw
+    parts = [p for p in raw_path.split("/") if p]
+    if len(parts) < 3:
+        print(json.dumps({"error": f"简写格式至少需要包含 owner/repo/path，例如: facebook/react/packages/react-dom"}))
+        sys.exit(0)
+    owner = parts[0]
+    repo = parts[1]
+    subpath = "/".join(parts[2:])
+    branch = explicit_branch or branch or ""
+    file_name = parts[-1]
+    
+    if token:
+        clone_url = f"https://oauth2:{token}@{host}/{owner}/{repo}.git"
+    else:
+        clone_url = f"https://{host}/{owner}/{repo}.git"
+        
+    if mirror and host == "github.com" and clone_url.startswith("https://"):
+        m_base = mirror.rstrip("/")
+        clone_url = f"{m_base}/{clone_url}"
+        
+    print(json.dumps({
+        "clone_url": clone_url,
+        "host": host,
+        "owner": owner,
+        "repo": repo,
+        "branch": branch,
+        "subpath": subpath,
+        "type": "tree",
+        "file_name": file_name,
+        "default_target": f"{repo}_{file_name}"
+    }))
+    sys.exit(0)
+
+# 完整 URL 解析
+ssh_match = re.match(r"^(?:ssh:\/\/)?git@([^/:]+)[:/](.+)$", raw)
+if ssh_match:
+    host = ssh_match.group(1)
+    rest_path = ssh_match.group(2)
+    proto = "git@"
+else:
+    parsed = urllib.parse.urlparse(raw)
+    host = parsed.netloc or host
+    rest_path = parsed.path.lstrip("/")
+    proto = f"{parsed.scheme}://"
+
+tree_pattern = re.compile(
+    r"^(?P<owner_and_repo>.+?)"
+    r"(?:\.git)?"
+    r"\/(?:-\/)?(?P<type>tree|blob)\/"
+    r"(?P<branch_and_subpath>.+)$"
+)
+
+m = tree_pattern.match(rest_path)
+if not m:
+    print(json.dumps({"error": f"无法识别的 Git 路径格式 (需包含 /tree/ 或 /blob/): {raw_input}"}))
+    sys.exit(0)
+
+d = m.groupdict()
+owner_and_repo = d["owner_and_repo"]
+type_ = d["type"] or "tree"
+branch_and_sub = d["branch_and_subpath"]
+
+repo_parts = owner_and_repo.split("/")
+owner = "/".join(repo_parts[:-1])
+repo = repo_parts[-1]
+
+parts = branch_and_sub.split("/")
+url_branch = parts[0]
+subpath = "/".join(parts[1:]) if len(parts) > 1 else ""
+
+if not subpath:
+    print(json.dumps({"error": "未能在 URL 中检测到子文件夹或文件路径"}))
+    sys.exit(0)
+
+branch = explicit_branch or url_branch
+file_name = parts[-1]
+default_target = f"{repo}_{file_name}"
+
+if proto.startswith("git@"):
+    clone_url = f"git@{host}:{owner}/{repo}.git"
+else:
+    if token:
+        clone_url = f"https://oauth2:{token}@{host}/{owner}/{repo}.git"
+    else:
+        clone_url = f"https://{host}/{owner}/{repo}.git"
+        
+if mirror and host == "github.com" and clone_url.startswith("https://"):
+    m_base = mirror.rstrip("/")
+    clone_url = f"{m_base}/{clone_url}"
+
+print(json.dumps({
+    "clone_url": clone_url,
+    "host": host,
+    "owner": owner,
+    "repo": repo,
+    "branch": branch,
+    "subpath": subpath,
+    "type": type_,
+    "file_name": file_name,
+    "default_target": default_target
+}))
+' "$INPUT_URL" "$BRANCH_OVERRIDE" "$TOKEN" "$MIRROR")
+
+ERROR_MSG=$(echo "$PARSED_JSON" | python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("error", ""))')
+if [ -n "$ERROR_MSG" ]; then
+    echo "❌ 错误: $ERROR_MSG" >&2
+    echo "👉 请运行 git-subfolder --help 查看用法" >&2
+    exit 1
+fi
+
+CLONE_URL=$(echo "$PARSED_JSON" | python3 -c 'import sys, json; print(json.load(sys.stdin)["clone_url"])')
+BRANCH=$(echo "$PARSED_JSON" | python3 -c 'import sys, json; print(json.load(sys.stdin)["branch"])')
+SUBPATH=$(echo "$PARSED_JSON" | python3 -c 'import sys, json; print(json.load(sys.stdin)["subpath"])')
+REPO_NAME=$(echo "$PARSED_JSON" | python3 -c 'import sys, json; print(json.load(sys.stdin)["repo"])')
+FILE_NAME=$(echo "$PARSED_JSON" | python3 -c 'import sys, json; print(json.load(sys.stdin)["file_name"])')
+DEFAULT_TARGET=$(echo "$PARSED_JSON" | python3 -c 'import sys, json; print(json.load(sys.stdin)["default_target"])')
+
+TARGET_DIR="${CUSTOM_TARGET:-$DEFAULT_TARGET}"
+
+# 日志输出函数
+log() {
+    if [ "$QUIET" -eq 0 ]; then
+        echo "$@"
+    fi
+}
+
+log "=========================================="
+log "📦 仓库地址: $CLONE_URL"
+log "🌿 分支/Tag: ${BRANCH:-默认分支}"
+log "📁 目标路径: $SUBPATH"
+if [ "$CAT_MODE" -eq 0 ]; then
+  log "🎯 本地输出: $TARGET_DIR"
+fi
+log "=========================================="
+
+# 检查目标覆盖
+if [ "$CAT_MODE" -eq 0 ] && [ "$FORCE" -eq 0 ] && [ -e "$TARGET_DIR" ]; then
+    if [ -d "$TARGET_DIR" ] && [ -n "$(ls -A "$TARGET_DIR" 2>/dev/null)" ]; then
+        echo "⚠️  警告: 本地目标路径 '$TARGET_DIR' 已存在且非空！" >&2
+        read -r -p "是否覆盖/合并到该目录？ [y/N] " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo "已取消操作。"
+            exit 1
+        fi
+    fi
+fi
+
+# 临时目录
+TMP_DIR=$(mktemp -d /tmp/git-subfolder.XXXXXX)
+trap 'rm -rf "$TMP_DIR"' EXIT INT TERM
+
+log "⏳ 正在连接仓库并浅克隆（仅抓取必要索引，不拉取历史 blob）..."
+if [ -n "$BRANCH" ]; then
+    git clone --depth 1 --filter=blob:none --sparse --no-checkout --branch "$BRANCH" "$CLONE_URL" "$TMP_DIR/repo" --quiet 2>/dev/null || {
+        log "⚠️  指定分支 '$BRANCH' 失败，尝试默认分支..."
+        git clone --depth 1 --filter=blob:none --sparse --no-checkout "$CLONE_URL" "$TMP_DIR/repo" --quiet
+    }
+else
+    git clone --depth 1 --filter=blob:none --sparse --no-checkout "$CLONE_URL" "$TMP_DIR/repo" --quiet
+fi
+
+cd "$TMP_DIR/repo"
+log "⏳ 正在按需拉取指定子路径: $SUBPATH ..."
+git sparse-checkout set --no-cone "$SUBPATH" >/dev/null 2>&1
+if [ -n "$BRANCH" ]; then
+    git checkout "$BRANCH" >/dev/null 2>&1 || git checkout >/dev/null 2>&1
+else
+    git checkout >/dev/null 2>&1
+fi
+
+cd - > /dev/null
+
+EXTRACT_SRC="$TMP_DIR/repo/$SUBPATH"
+
+if [ ! -e "$EXTRACT_SRC" ]; then
+    echo "❌ 错误: 在远程仓库中未找到目标路径: $SUBPATH" >&2
+    exit 1
+fi
+
+# 1. Stdout / Cat 模式
+if [ "$CAT_MODE" -eq 1 ]; then
+    if [ -d "$EXTRACT_SRC" ]; then
+        echo "❌ 错误: --cat 模式仅适用于单个文件，目标路径是目录: $SUBPATH" >&2
+        exit 1
+    fi
+    cat "$EXTRACT_SRC"
+    exit 0
+fi
+
+# 2. 正常落盘模式
+if [ -d "$EXTRACT_SRC" ]; then
+    if [ "$KEEP_PATH" -eq 1 ]; then
+        FINAL_DEST="$TARGET_DIR/$SUBPATH"
+        mkdir -p "$FINAL_DEST"
+        cp -a "$EXTRACT_SRC/." "$FINAL_DEST/"
+    else
+        mkdir -p "$TARGET_DIR"
+        cp -a "$EXTRACT_SRC/." "$TARGET_DIR/"
+    fi
+
+    ITEM_COUNT=$(find "$TARGET_DIR" -type f | wc -l | tr -d ' ')
+    TOTAL_SIZE=$(du -sh "$TARGET_DIR" | cut -f1)
+    log "✅ 成功下载文件夹到: $TARGET_DIR"
+    log "📊 共计 $ITEM_COUNT 个文件，占用空间 $TOTAL_SIZE (无 .git 历史)"
+
+    # 初始化新仓库
+    if [ "$INIT_GIT" -eq 1 ]; then
+        (
+            cd "$TARGET_DIR"
+            git init -q
+            git add -A
+            git commit -q -m "chore: init from $INPUT_URL" 2>/dev/null || true
+        )
+        log "✨ 已成功在 $TARGET_DIR 中初始化为全新 Git 仓库 (git init)"
+    fi
+
+elif [ -f "$EXTRACT_SRC" ]; then
+    if [ "$KEEP_PATH" -eq 1 ]; then
+        FINAL_FILE="$TARGET_DIR/$SUBPATH"
+        mkdir -p "$(dirname "$FINAL_FILE")"
+        cp -a "$EXTRACT_SRC" "$FINAL_FILE"
+    else
+        if [ -d "$TARGET_DIR" ]; then
+            cp -a "$EXTRACT_SRC" "$TARGET_DIR/"
+            FINAL_FILE="$TARGET_DIR/$(basename "$EXTRACT_SRC")"
+        else
+            mkdir -p "$(dirname "$TARGET_DIR")"
+            cp -a "$EXTRACT_SRC" "$TARGET_DIR"
+            FINAL_FILE="$TARGET_DIR"
+        fi
+    fi
+    FILE_SIZE=$(du -sh "$FINAL_FILE" | cut -f1)
+    log "✅ 成功下载文件到: $FINAL_FILE ($FILE_SIZE)"
+fi

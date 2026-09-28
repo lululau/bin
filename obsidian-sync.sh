@@ -16,7 +16,7 @@ fi
 git pull
 echo "Pulled data from github."
 
-if lsof -i :27123 >&- && test -e $obsidian_dir/.obsidian/plugins/obsidian-local-rest-api/data.json; then
+if curl -sf -m 1 -o /dev/null "http://127.0.0.1:27123/" && test -e $obsidian_dir/.obsidian/plugins/obsidian-local-rest-api/data.json; then
   rest_api_key=$(jq .apiKey $obsidian_dir/.obsidian/plugins/obsidian-local-rest-api/data.json -r)
 
 

@@ -1,0 +1,311 @@
+#!/usr/bin/env bash
+# markdown-align-tables —— 通过正在运行的 Emacs 对齐 Markdown 表格并保存
+#
+# 借助 (lx/markdown-align-all-tables)，对指定文件中的所有表格做对齐。
+# 必须连上已启动的 Emacs server（与交互会话同一环境，含 markdown-mode advice）。
+
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+markdown-align-tables - 用 Emacs 对齐 Markdown 文件中的全部表格并保存
+
+用法:
+    markdown-align-tables [选项] 文件...
+
+说明:
+    通过 emacsclient 在当前正在运行的 Emacs 中调用
+    (lx/markdown-align-all-tables)，逐个处理指定文件并写回磁盘。
+    使用 find-file-noselect，不会切换你正在看的窗口。
+
+参数:
+    文件...              一个或多个 Markdown 文件（相对或绝对路径）
+
+选项:
+    -h, --help           显示本帮助
+    -n, --dry-run        只统计/检测是否需要改动，不保存、不改已打开的 buffer
+    -f, --force          若文件已在 Emacs 中且有未保存修改，仍对齐并保存
+    -q, --quiet          只输出错误
+    -v, --verbose        输出 emacsclient 的原始返回值
+
+退出码:
+    0    全部成功（dry-run 下全部可处理即成功）
+    1    有文件失败或被跳过
+    2    用法错误（未给文件、未知选项等）
+    3    无法连接 Emacs server
+
+示例:
+    markdown-align-tables README.md notes/a.md
+    markdown-align-tables --dry-run *.md
+    markdown-align-tables --force draft.md
+EOF
+}
+
+elisp_escape() {
+    # 把路径编成 Elisp 字符串字面量
+    local s=$1
+    s=${s//\\/\\\\}
+    s=${s//\"/\\\"}
+    printf '"%s"' "$s"
+}
+
+absolute_path() {
+    local f="$1"
+    local dir base
+    dir=$(dirname -- "$f")
+    base=$(basename -- "$f")
+    (cd -- "$dir" && printf '%s/%s\n' "$(pwd -P)" "$base")
+}
+
+if [[ "$(uname -s)" == Darwin ]]; then
+    export TMPDIR
+    TMPDIR=$(getconf DARWIN_USER_TEMP_DIR)
+fi
+
+dry_run=0
+force=0
+quiet=0
+verbose=0
+files=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -n|--dry-run)
+            dry_run=1
+            shift
+            ;;
+        -f|--force)
+            force=1
+            shift
+            ;;
+        -q|--quiet)
+            quiet=1
+            shift
+            ;;
+        -v|--verbose)
+            verbose=1
+            shift
+            ;;
+        --)
+            shift
+            files+=("$@")
+            break
+            ;;
+        -*)
+            echo "错误: 未知选项 '$1'" >&2
+            echo "使用 --help 查看帮助" >&2
+            exit 2
+            ;;
+        *)
+            files+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [[ ${#files[@]} -eq 0 ]]; then
+    echo "错误: 至少需要指定一个 Markdown 文件" >&2
+    echo "使用 --help 查看帮助" >&2
+    exit 2
+fi
+
+if ! command -v emacsclient >/dev/null 2>&1; then
+    echo "错误: 找不到 emacsclient" >&2
+    exit 3
+fi
+
+if ! emacsclient -e '(emacs-version)' >/dev/null 2>&1; then
+    echo "错误: 无法连接 Emacs server（emacsclient 找不到 socket）" >&2
+    echo "请确认 Emacs / Spacemacs 已启动，且本机 TMPDIR 与 Emacs 启动时一致。" >&2
+    if [[ "$(uname -s)" == Darwin ]]; then
+        echo "当前 TMPDIR=$TMPDIR" >&2
+    fi
+    exit 3
+fi
+
+if ! emacsclient -e '(fboundp (quote lx/markdown-align-all-tables))' | grep -q '^t$'; then
+    echo "错误: 当前 Emacs 会话中没有函数 lx/markdown-align-all-tables" >&2
+    echo "请确认已加载 markdown-mode 配置（package-hooks/markdown-mode.el）。" >&2
+    exit 3
+fi
+
+log() {
+    if [[ "$quiet" -eq 0 ]]; then
+        printf '%s\n' "$*"
+    fi
+}
+
+log_err() {
+    printf '%s\n' "$*" >&2
+}
+
+# 返回值约定（emacsclient 打印为 Lisp 字符串）:
+#   ok|<count>|<saved|unchanged|would-save|would-unchanged>
+#   skip|0|<reason>
+#   error|0|<reason>
+align_one() {
+    local abs="$1"
+    local file_lisp force_lisp dry_lisp expr raw status count action
+
+    file_lisp=$(elisp_escape "$abs")
+    if [[ "$force" -eq 1 ]]; then
+        force_lisp=t
+    else
+        force_lisp=nil
+    fi
+    if [[ "$dry_run" -eq 1 ]]; then
+        dry_lisp=t
+    else
+        dry_lisp=nil
+    fi
+
+    expr=$(cat <<EOF
+(condition-case err
+    (let* ((file $file_lisp)
+           (force $force_lisp)
+           (dry-run $dry_lisp)
+           (existing (find-buffer-visiting file)))
+      (cond
+       ((not (file-readable-p file))
+        (format "error|0|unreadable"))
+       ((and existing (buffer-modified-p existing) (not force) (not dry-run))
+        (format "skip|0|unsaved-buffer"))
+       (dry-run
+        (with-temp-buffer
+          (insert-file-contents file)
+          (delay-mode-hooks (markdown-mode))
+          (set-buffer-modified-p nil)
+          (lx/markdown-align-all-tables)
+          (let* ((msg (current-message))
+                 (count (if (and (stringp msg)
+                                 (string-match "\\\\([0-9]+\\\\) 个表格" msg))
+                            (string-to-number (match-string 1 msg))
+                          0))
+                 (changed (buffer-modified-p)))
+            (format "ok|%d|%s" count (if changed "would-save" "would-unchanged")))))
+       (t
+        (let ((buf (or existing (find-file-noselect file)))
+              (created (not existing))
+              (kill-buffer-query-functions nil))
+          (unwind-protect
+              (with-current-buffer buf
+                (unless (derived-mode-p 'markdown-mode)
+                  (markdown-mode))
+                (lx/markdown-align-all-tables)
+                (let* ((msg (current-message))
+                       (count (if (and (stringp msg)
+                                       (string-match "\\\\([0-9]+\\\\) 个表格" msg))
+                                  (string-to-number (match-string 1 msg))
+                                0)))
+                  (if (buffer-modified-p)
+                      (progn
+                        (save-buffer)
+                        (format "ok|%d|saved" count))
+                    (format "ok|%d|unchanged" count))))
+            (when (and created (buffer-live-p buf) (not (buffer-modified-p buf)))
+              (kill-buffer buf)))))))
+  (error (format "error|0|%s"
+                 (replace-regexp-in-string "|" "/" (error-message-string err)))))
+EOF
+)
+
+    if ! raw=$(emacsclient -e "$expr"); then
+        log_err "$abs: 错误: emacsclient 调用失败"
+        return 1
+    fi
+
+    if [[ "$verbose" -eq 1 ]]; then
+        log_err "  emacsclient: $raw"
+    fi
+
+    # emacsclient 打印 Lisp 字符串: "ok|3|saved"
+    raw=${raw#\"}
+    raw=${raw%\"}
+
+    status=${raw%%|*}
+    raw=${raw#*|}
+    count=${raw%%|*}
+    action=${raw#*|}
+
+    case "$status" in
+        ok)
+            case "$action" in
+                saved)
+                    log "$abs: 对齐 ${count} 个表格，已保存"
+                    ;;
+                unchanged)
+                    log "$abs: 对齐 ${count} 个表格，内容无变化"
+                    ;;
+                would-save)
+                    log "$abs: [dry-run] ${count} 个表格，保存后会有改动"
+                    ;;
+                would-unchanged)
+                    log "$abs: [dry-run] ${count} 个表格，无需改动"
+                    ;;
+                *)
+                    log "$abs: 完成 (${count} 个表格, $action)"
+                    ;;
+            esac
+            return 0
+            ;;
+        skip)
+            log_err "$abs: 跳过（Emacs 中该文件有未保存修改，使用 --force 可强制保存）"
+            return 1
+            ;;
+        error)
+            log_err "$abs: 错误: $action"
+            return 1
+            ;;
+        *)
+            log_err "$abs: 错误: 无法解析 Emacs 返回值: $raw"
+            return 1
+            ;;
+    esac
+}
+
+failed=0
+for f in "${files[@]}"; do
+    if [[ ! -e "$f" ]]; then
+        log_err "$f: 错误: 文件不存在"
+        failed=$((failed + 1))
+        continue
+    fi
+    if [[ -d "$f" ]]; then
+        log_err "$f: 错误: 是目录，需要的是文件"
+        failed=$((failed + 1))
+        continue
+    fi
+    if [[ ! -f "$f" ]]; then
+        log_err "$f: 错误: 不是普通文件"
+        failed=$((failed + 1))
+        continue
+    fi
+    if [[ ! -r "$f" ]]; then
+        log_err "$f: 错误: 不可读"
+        failed=$((failed + 1))
+        continue
+    fi
+    if [[ "$dry_run" -eq 0 && ! -w "$f" ]]; then
+        log_err "$f: 错误: 不可写"
+        failed=$((failed + 1))
+        continue
+    fi
+
+    abs=$(absolute_path "$f")
+    if ! align_one "$abs"; then
+        failed=$((failed + 1))
+    fi
+done
+
+if [[ "$failed" -gt 0 ]]; then
+    if [[ "$quiet" -eq 0 ]]; then
+        log_err "完成: ${failed}/${#files[@]} 个文件失败"
+    fi
+    exit 1
+fi
+
+exit 0

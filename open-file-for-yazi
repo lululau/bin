@@ -1,10 +1,23 @@
 #!/bin/bash
 
+# 按扩展名分发打开方式，追加新类型只需往对应数组里加
+TYPORA_EXTS=(md markdown)        # 用 Typora 打开
+DEFAULT_APP_EXTS=(html htm csv)  # 用系统默认应用打开（html/htm 落到默认浏览器，csv 落到关联的 GUI app）
+
+has_ext() { # has_ext <file> <ext...>
+  local f=$1 e
+  shift
+  for e in "$@"; do
+    [[ $f == *."$e" ]] && return 0
+  done
+  return 1
+}
+
 file=$1
 
-if [[ "$file" == *.md || "$file" == *.markdown ]]; then
+if has_ext "$file" "${TYPORA_EXTS[@]}"; then
   open -a Typora.app "$file"
-elif [[ "$file" == *.html || "$file" == *.htm ]]; then
+elif has_ext "$file" "${DEFAULT_APP_EXTS[@]}"; then
   open "$file"
 else
   exec nvim "$file"

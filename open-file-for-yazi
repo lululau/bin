@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
 # 按扩展名分发打开方式，追加新类型只需往对应数组里加
 TYPORA_EXTS=(md markdown)        # 用 Typora 打开
 DEFAULT_APP_EXTS=(html htm csv)  # 用系统默认应用打开（html/htm 落到默认浏览器，csv 落到关联的 GUI app）

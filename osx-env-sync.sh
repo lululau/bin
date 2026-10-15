@@ -1,5 +1,11 @@
+#!/bin/zsh
+[[ -f $HOME/.zshenv ]] && source $HOME/.zshenv
+
 grep "^export" $HOME/.zshenv | while IFS=' =' read ignoreexport envvar ignorevalue; do
-  launchctl setenv "${envvar}" "${!envvar}"
+  val="${(P)envvar}"
+  if [[ -n "$val" ]]; then
+    launchctl setenv "${envvar}" "$val"
+  fi
 done
 
 if [ -e /opt/homebrew/bin/brew ]; then

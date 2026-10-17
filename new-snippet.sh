@@ -269,18 +269,18 @@ if [ -z "$snippet_content" ]; then
     exit 1
 fi
 
-escaped_snippet_content=$(python -c "import json, sys; print(json.dumps(sys.stdin.read())[1:-1])" <<< "$snippet_content")
-
-cat <<EOF > "$snippet_file"
-{
-  "alfredsnippet" : {
-    "snippet" : "$escaped_snippet_content",
-    "dontautoexpand" : true,
-    "uid" : "$uid",
-    "name" : "$snippet_name",
-    "keyword" : "$snippet_name",
-  }
-}
-EOF
+jq -n \
+    --arg snippet "$snippet_content" \
+    --arg uid "$uid" \
+    --arg name "$snippet_name" \
+    '{
+        alfredsnippet: {
+            snippet: $snippet,
+            dontautoexpand: true,
+            uid: $uid,
+            name: $name,
+            keyword: $name
+        }
+    }' > "$snippet_file"
 
 echo "Snippet created: $snippet_file"

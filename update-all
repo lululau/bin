@@ -88,9 +88,16 @@ fi
 # fi
 
 # 升级所有 formulae
-print_color "$CYAN" "  → Upgrading formulae..."
+# ⚠️ 排除清单：含系统扩展/命脉组件的 cask 绝不能自动升级
+# （Tailscale 升级后系统扩展需重启才能交接，远程机器会因此失联）
+# 手动升级方法：坐在机器旁执行 brew upgrade --greedy tailscale-app && sudo reboot
+CASK_EXCLUDES='tailscale-app'
+print_color "$CYAN" "  → Upgrading formulae (excluded casks: $CASK_EXCLUDES)..."
 HOMEBREW_UPDATED=false
-if brew upgrade --greedy --force --yes; then
+UPGRADE_LIST=$(brew outdated --greedy --verbose 2>/dev/null | awk '{print $1}' | grep -Ev "^(${CASK_EXCLUDES//,/|})$" || true)
+if [[ -n "$UPGRADE_LIST" ]]; then
+  echo "$UPGRADE_LIST" | sed 's/^/    /'
+  if echo "$UPGRADE_LIST" | xargs brew upgrade --force --yes; then
   UPGRADED_COUNT=$(brew outdated | wc -l | tr -d ' ')
   if [[ $UPGRADED_COUNT -eq 0 ]]; then
     print_color "$CYAN" "  ✓ All formulae up-to-date"
@@ -98,8 +105,11 @@ if brew upgrade --greedy --force --yes; then
     print_color "$GREEN" "  ✓ Formulae upgraded"
     HOMEBREW_UPDATED=true
   fi
+  else
+    print_color "$RED" "  ✗ Formulae upgrade failed"
+  fi
 else
-  print_color "$RED" "  ✗ Formulae upgrade failed"
+  print_color "$CYAN" "  ✓ All formulae up-to-date (nothing to upgrade)"
 fi
 
 # # 检查 BetterTouchTool 是否被更新，如果是则重启

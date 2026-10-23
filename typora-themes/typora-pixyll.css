@@ -1,0 +1,104 @@
+/* BG: #ededed */
+/* Typora 「pixyll」主题复刻 — 由 gen_typora_themes.py 生成，供 md-to-pdf 使用 */
+
+body {
+    font-family: "LXGW WenKai", serif;
+    color: #454545;
+    background-color: #ededed;
+    line-height: 1.7;
+    margin: 0;
+    padding: 0 18mm;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: bold;
+    line-height: 1.3;
+    color: #38b7ea;
+    margin: 1.8em 0 1em;
+    padding: 0;
+    page-break-after: avoid;
+}
+h1 { font-size: 2.1em; border-bottom: 1px solid #d0d0d0; padding-bottom: .3em; margin-top: 1em; }
+h2 { font-size: 1.65em; border-bottom: 1px solid #d0d0d0; padding-bottom: .3em; }
+h3 { font-size: 1.4em; }
+h4 { font-size: 1.2em; }
+h5 { font-size: 1.05em; }
+h6 { font-size: 1em; color: #454545; }
+
+body > h1:first-child, body > h2:first-child { margin-top: 0; }
+
+p { margin: 1em 0; }
+ul, ol { padding-left: 24px; margin: 1em 0; }
+li { margin-bottom: .4em; }
+li > ul, li > ol { margin: 0; }
+
+b, strong { font-weight: bold; color: #38b7ea; }
+a { color: #38b7ea; text-decoration: none; }
+del { color: #999; }
+
+hr { border: 0; border-bottom: 1px solid #d0d0d0; margin: 24px 0; }
+
+blockquote {
+    border-left: 4px solid #38b7ea;
+    background: transparent;
+    color: #454545;
+    padding: 10px 16px;
+    margin: 1.2em 0;
+    font-style: italic;
+}
+
+pre, code, kbd, tt, var {
+    font-family: Consolas, "JetBrains Mono", monospace;
+    font-size: 0.88em;
+}
+code, tt, var {
+    background: #f7f7f7;
+    color: #454545;
+    border-radius: 3px;
+    padding: 2px 5px;
+}
+h1 code, h2 code, h3 code, h4 code, h5 code, h6 code { background: none; padding: 0; color: inherit; }
+
+pre {
+    background: #f7f7f7;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    line-height: 1.5;
+    page-break-inside: avoid;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+pre code { background: none; border: none; padding: 0; color: inherit; font-size: 1em; }
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 100%;
+    margin: 1.2em 0;
+    page-break-inside: avoid;
+    font-size: 0.95em;
+}
+table th, table td {
+    border: 1px solid #d0d0d0;
+    padding: 6px 13px;
+    text-align: left;
+    vertical-align: top;
+}
+table th {
+    background: #f7f7f7;
+    font-weight: bold;
+    color: #38b7ea;
+}
+table tr:nth-child(2n) { background: transparent; }
+
+li.task-list-item { list-style: none; }
+li.task-list-item input[type=checkbox] { margin-right: .4em; }
+
+img { max-width: 100%; page-break-inside: avoid; }

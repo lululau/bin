@@ -1,0 +1,189 @@
+#!/bin/zsh
+# md2pdf — 用 md-to-pdf 将 Markdown 转为 PDF，复刻 Typora 主题样式
+#
+# 用法: md2pdf [选项] <file.md> [output.pdf]
+# 完整帮助: md2pdf --help
+
+set -euo pipefail
+
+THEMES_DIR="$HOME/bin/typora-themes"
+THEME="solarized"
+TITLE=""
+PAGE_NUMBERS=0
+TOC=1            # 默认开启目录
+BATCH=""
+HIGHLIGHT="github"
+AS_HTML=0
+OPEN=0
+
+usage() {
+  cat <<'EOF'
+md2pdf — Markdown 转 PDF（复刻 Typora 主题）
+
+用法:
+  md2pdf [选项] <file.md> [output.pdf]     转换单个文件
+  md2pdf --batch <dir|glob> [选项]         批量转换
+
+选项:
+  --theme <name>       主题名，默认 solarized（见 --list-themes）
+  --toc / --no-toc     生成 PDF 书签目录——Preview 侧边栏可见、可点击跳转（默认开启）
+  --title <text>       覆盖文档标题（用于 HTML <title>；默认取文档名）
+  --page-numbers       页脚居中显示页码「N / M」（默认关）
+  --batch <dir|glob>   批量转换：目录（其下所有 .md）或 glob（如 'docs/*.md'）
+  --highlight <style>  代码高亮样式（github / atom-one-dark / monokai 等，默认 github）
+  --html               输出 HTML 而非 PDF（保留同样式）
+  --open               转换完成后自动打开产物
+  --list-themes        列出全部可用主题后退出
+  -h, --help           显示本帮助
+
+示例:
+  md2pdf doc.md
+  md2pdf --theme night --page-numbers doc.md out.pdf
+  md2pdf --no-toc --batch 'notes/*.md'
+  md2pdf --theme github --open doc.md
+EOF
+}
+
+list_themes() {
+  echo "可用主题:"
+  ls "$THEMES_DIR"/typora-*.css 2>/dev/null | sed 's|.*/typora-||; s|\.css$||' | \
+    while read -r t; do
+      bg=$(grep -m1 '^/\* BG:' "$THEMES_DIR/typora-$t.css" | sed 's|.*BG: ||; s| \*/||')
+      printf '  %-28s %s\n' "$t" "$bg"
+    done
+}
+
+# ---------- 解析参数 ----------
+FILES=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --theme)         THEME="$2"; shift 2 ;;
+    --title)         TITLE="$2"; shift 2 ;;
+    --toc)           TOC=1; shift ;;
+    --no-toc)        TOC=0; shift ;;
+    --page-numbers)  PAGE_NUMBERS=1; shift ;;
+    --batch)         BATCH="$2"; shift 2 ;;
+    --highlight)     HIGHLIGHT="$2"; shift 2 ;;
+    --html)          AS_HTML=1; shift ;;
+    --open)          OPEN=1; shift ;;
+    --list-themes)   list_themes; exit 0 ;;
+    -h|--help)       usage; exit 0 ;;
+    --)              shift; while [[ $# -gt 0 ]]; do FILES+=("$1"); shift; done ;;
+    -*)              echo "未知选项: $1（--help 查看用法）" >&2; exit 1 ;;
+    *)               FILES+=("$1"); shift ;;
+  esac
+done
+
+# ---------- 校验主题 ----------
+STYLE="$THEMES_DIR/typora-$THEME.css"
+if [[ ! -f "$STYLE" ]]; then
+  echo "错误: 主题样式不存在: $STYLE" >&2
+  list_themes >&2
+  exit 1
+fi
+BG=$(grep -m1 '^/\* BG:' "$STYLE" | sed 's|.*BG: ||; s| \*/||')
+[[ -z "$BG" ]] && BG="#ffffff"
+
+# ---------- 组装模板 ----------
+HEADER_TMPL='<div style="position:absolute;top:0;left:0;width:100%;height:20mm;background:'"$BG"';-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:1px;margin:0;padding:0;"></div>'
+FOOTER_TMPL='<div style="position:absolute;bottom:0;left:0;width:100%;height:18mm;background:'"$BG"';-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:1px;margin:0;padding:0;"></div>'
+if [[ $PAGE_NUMBERS -eq 1 ]]; then
+  R=$((16#${BG:1:2})); G=$((16#${BG:3:2})); B=$((16#${BG:5:2}))
+  LUM=$(( (R*299 + G*587 + B*114) / 1000 ))
+  if [[ $LUM -gt 128 ]]; then FC="#555555"; else FC="#cccccc"; fi
+  FOOTER_TMPL="$FOOTER_TMPL"'<div style="position:absolute;bottom:4mm;width:100%;text-align:center;font-size:8px;color:'"$FC"':margin:0;padding:0;"><span class="pageNumber"></span> / <span class="totalPages"></span></div>'
+fi
+
+# 用 python 生成 JSON，避免手工转义地狱
+# outline:true → Puppeteer 从 h1-h6 生成真正的 PDF 书签目录（Preview 侧边栏可见）
+PDF_OPTS=$(HEADER_TMPL="$HEADER_TMPL" FOOTER_TMPL="$FOOTER_TMPL" python3 -c '
+import json, os
+print(json.dumps({
+  "format": "A4",
+  "margin": {"top": "20mm", "bottom": "18mm", "left": "0", "right": "0"},
+  "printBackground": True,
+  "preferCSSPageSize": False,
+  "displayHeaderFooter": True,
+  "outline": True,
+  "headerTemplate": os.environ["HEADER_TMPL"],
+  "footerTemplate": os.environ["FOOTER_TMPL"],
+}))')
+
+MARKED_OPTS='{"gfm":true}'
+
+# ---------- 页面内目录已弃用: outline:true 生成真正的 PDF 书签目录 ----------
+# --toc 现在等价于 outline（默认开）；--no-toc 关闭书签
+inject_toc() { :; }
+
+convert_one() {
+  local input="$1" out="${2:-}"
+  [[ -f "$input" ]] || { echo "错误: 文件不存在: $input" >&2; return 1; }
+
+  local dir base noext default_out work="$input" tmp="" ext="pdf"
+  [[ $AS_HTML -eq 1 ]] && ext="html"
+  dir="$(dirname "$input")"; base="$(basename "$input")"; noext="${base%.md}"
+  default_out="$dir/${noext}.$ext"
+
+  # TOC 不再需要临时文件（outline 由 pdf_options 生成）
+  local extra=()
+  [[ -n "$TITLE" ]] && extra+=(--document-title "$TITLE")
+  local rc=0
+
+  local pdf_opts="$PDF_OPTS"
+  if [[ $TOC -eq 0 ]]; then
+    pdf_opts=$(PDF_OPTS="$PDF_OPTS" python3 -c '
+import json, os
+o = json.loads(os.environ["PDF_OPTS"])
+o["outline"] = False
+print(json.dumps(o))')
+  fi
+
+  if [[ $AS_HTML -eq 1 ]]; then
+    md-to-pdf "$work" --stylesheet "$STYLE" --highlight-style "$HIGHLIGHT" \
+      --css "body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}" \
+      --marked-options "$MARKED_OPTS" "${extra[@]}" --as-html || rc=1
+  else
+    md-to-pdf "$work" --stylesheet "$STYLE" --highlight-style "$HIGHLIGHT" \
+      --css "body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}" \
+      --marked-options "$MARKED_OPTS" "${extra[@]}" \
+      --pdf-options "$pdf_opts" || rc=1
+  fi
+
+  [[ -n "$tmp" ]] && rm -f "$tmp"
+  if [[ $rc -eq 0 ]]; then
+    if [[ -n "$out" && "$out" != "$default_out" ]]; then mv "$default_out" "$out"; default_out="$out"; fi
+    echo "已生成: $default_out (主题: $THEME)"
+    [[ $OPEN -eq 1 ]] && open "$default_out"
+  fi
+  return $rc
+}
+
+# ---------- 执行 ----------
+if [[ -n "$BATCH" ]]; then
+  if [[ -d "$BATCH" ]]; then
+    md_files=("$BATCH"/*.md)
+  else
+    eval "md_files=($BATCH)"
+  fi
+  [[ ${#md_files[@]} -eq 0 ]] && { echo "错误: 未匹配到任何 .md 文件: $BATCH" >&2; exit 1; }
+  echo "批量转换 ${#md_files[@]} 个文件 (主题: $THEME)..."
+  fail=0
+  for f in "${md_files[@]}"; do convert_one "$f" || fail=1; done
+  exit $fail
+fi
+
+if [[ ${#FILES[@]} -lt 1 ]]; then
+  usage >&2
+  exit 1
+fi
+
+inputs=("${FILES[@]}")
+out=""
+if [[ ${#inputs[@]} -ge 2 && "${inputs[-1]}" == *.pdf ]]; then
+  out="${inputs[-1]}"
+  inputs=("${inputs[@]:0:-1}")
+fi
+
+fail=0
+for f in "${inputs[@]}"; do convert_one "$f" "$out" || fail=1; done
+exit $fail

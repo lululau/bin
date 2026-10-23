@@ -1,0 +1,288 @@
+/* BG: #fdf6e3 */
+/* Typora Solarized 主题复刻 — 供 md-to-pdf 使用
+ * 源: ~/Library/Application Support/abnerworks.Typora/themes/solarized.css
+ * 适配: #write → body, .md-fences → pre, Typora 私有类移除, 增加 @page 分页
+ */
+
+@font-face {
+    font-family: 'Mononoki';
+    src: local('Mononoki Regular'),
+         url('/Users/liuxiang/Library/Application Support/abnerworks.Typora/themes/solarized/mononoki-Regular.ttf') format('truetype');
+    font-weight: normal; font-style: normal;
+}
+@font-face {
+    font-family: 'Mononoki';
+    src: local('Mononoki Italic'),
+         url('/Users/liuxiang/Library/Application Support/abnerworks.Typora/themes/solarized/mononoki-Italic.ttf') format('truetype');
+    font-weight: normal; font-style: italic;
+}
+@font-face {
+    font-family: 'Mononoki';
+    src: local('Mononoki Bold'),
+         url('/Users/liuxiang/Library/Application Support/abnerworks.Typora/themes/solarized/mononoki-Bold.ttf') format('truetype');
+    font-weight: bold; font-style: normal;
+}
+@font-face {
+    font-family: 'Mononoki';
+    src: local('Mononoki Bold Italic'),
+         url('/Users/liuxiang/Library/Application Support/abnerworks.Typora/themes/solarized/mononoki-BoldItalic.ttf') format('truetype');
+    font-weight: bold; font-style: italic;
+}
+
+/* 不写 @page 规则：页面尺寸与边距完全由 md2pdf 的 --pdf-options 提供，
+   否则 CSS @page 会覆盖 pdf_options，导致 header/footer 模板高度与 margin 区不匹配。 */
+
+html {
+    font-size: 13px; /* Typora @media print 值 */
+    -webkit-font-smoothing: antialiased;
+    background-color: #fdf6e3;
+}
+
+body {
+    font-family: "LXGW WenKai", "LXGWWenKai-Regular", serif;
+    color: #586e75;
+    background-color: #fdf6e3;
+    line-height: 1.8;
+    max-width: none;
+    margin: 0;
+    padding: 0 18mm; /* 左右边距（上下留白由页眉/页脚模板负责） */
+    word-wrap: break-word;
+    box-sizing: border-box;
+    min-height: 100vh;
+}
+
+/* ---------- 标题 ---------- */
+h1, h2, h3, h4, h5, h6 {
+    font-family: "LXGW WenKai", "LXGWWenKai-Regular", sans-serif;
+    position: relative;
+    margin-top: 2rem;
+    margin-bottom: 1.2rem;
+    font-weight: bold;
+    line-height: 1.3;
+    color: #073642;
+    clear: both;
+    word-wrap: break-word;
+    padding: 0;
+    page-break-after: avoid;
+}
+
+h1 {
+    padding-bottom: .3em;
+    font-size: 2.25em;
+    line-height: 1.2;
+    border-bottom: 1px solid #eee8d5;
+    margin-top: 2em;
+}
+
+h2 {
+    padding-bottom: .3em;
+    font-size: 1.75em;
+    line-height: 1.225;
+    border-bottom: 1px solid #eee8d5;
+}
+
+h3 { font-size: 1.5em; line-height: 1.43; }
+h4 { font-size: 1.25em; }
+h5 { font-size: 1em; }
+h6 { font-size: 1em; color: #93a1a1; }
+
+body > h1:first-child,
+body > h2:first-child,
+body > h1:first-child + h2,
+body > h3:first-child,
+body > h4:first-child,
+body > h5:first-child,
+body > h6:first-child {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+h1 p, h2 p, h3 p, h4 p, h5 p, h6 p { margin-top: 0; }
+
+h1 code, h2 code, h3 code,
+h4 code, h5 code, h6 code { font-size: inherit; }
+
+/* ---------- 段落 / 列表 ---------- */
+p, ul, ol, dl, table { margin: 1.2em 0; }
+
+ul, ol {
+    padding-left: 24px;
+    list-style-position: outside;
+}
+ul { list-style: square; }
+ol { list-style: decimal; }
+ul ul, ol ol, ul ol, ol ul { margin: 0; }
+li > ol, li > ul { margin: 0 0; }
+li { margin-bottom: 0.5em; }
+li:last-child { margin-bottom: 0; }
+ul:first-child, ol:first-child { margin-top: 0; }
+ul:last-child, ol:last-child { margin-bottom: 0; }
+
+b, th, dt, strong { font-weight: bold; color: #073642; }
+i, em, dfn, cite { font-style: italic; }
+
+del, s { color: #93a1a1; }
+
+a { color: #268bd2; text-decoration: none; }
+
+hr {
+    height: 1px;
+    padding: 0;
+    margin: 24px 0;
+    background-color: #eee8d5;
+    border: 0 none;
+    box-sizing: content-box;
+}
+
+/* ---------- 引用块 ---------- */
+blockquote {
+    border-left: 4px solid #b58900;
+    padding: 16px 20px;
+    padding-left: 30px;
+    background-color: rgba(238, 232, 213, 0.3);
+    border-radius: 0 4px 4px 0;
+    color: #657b83;
+    font-style: italic;
+    margin: 35px 0 1.875rem 1.875rem;
+}
+blockquote blockquote { padding-right: 0; }
+
+/* ---------- 行内代码 ---------- */
+pre, code, kbd, tt, var {
+    font-size: 0.85em;
+    font-family: Consolas, Mononoki, "Roboto Mono", "Liberation Mono", Courier, monospace;
+}
+code, tt, var {
+    background-color: #eee8d5;
+    color: #dc322f;
+    border: 1px solid #d3d0c1;
+    border-radius: 4px;
+    padding: 3px 6px 1px 6px;
+}
+h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+kbd {
+    padding: 2px 4px;
+    font-size: 90%;
+    color: #fdf6e3;
+    background-color: #657b83;
+    border-radius: 3px;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,.25);
+}
+
+/* ---------- 代码块 ---------- */
+pre {
+    margin-bottom: 20px;
+    margin-top: 20px;
+    padding: 10px 10px 10px 30px;
+    background: #eee8d5;
+    border: 1px solid #d3d0c1;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: "JetBrainsLxgwNerdMono-Regular", "JetBrainsLxgwNerdMono", Consolas, monospace;
+    line-height: 1.5;
+    page-break-inside: avoid;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #657b83;
+    font-size: 1em;
+}
+
+/* ---------- 表格 ---------- */
+table {
+    padding: 0;
+    word-break: initial;
+    max-width: 100%;
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    page-break-inside: avoid;
+    font-size: 0.95em;
+}
+table tr {
+    border-top: 1px solid #93a1a1;
+    margin: 0;
+    padding: 0;
+}
+table tr:nth-child(2n) { background-color: #eee8d5; }
+table tr th {
+    font-weight: bold;
+    border: 1px solid #93a1a1;
+    text-align: left;
+    margin: 0;
+    padding: 6px 13px;
+    background-color: #eee8d5;
+    color: #073642;
+    vertical-align: top;
+}
+table tr td {
+    border: 1px solid #93a1a1;
+    text-align: left;
+    margin: 0;
+    padding: 6px 13px;
+    vertical-align: top;
+}
+table a { color: #268bd2; }
+
+/* ---------- 任务列表 ---------- */
+li.task-list-item, .task-list-item {
+    list-style: none;
+    padding-left: 4px;
+}
+li.task-list-item input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0.875rem;
+    height: 0.875rem;
+    vertical-align: middle;
+    text-align: center;
+    border: 1px solid #586e75;
+    border-radius: 2px;
+    background-color: #fdf6e3;
+    margin-right: 0.4em;
+    position: relative;
+}
+li.task-list-item input[type="checkbox"]:checked {
+    background-color: #eee8d5;
+}
+li.task-list-item input[type="checkbox"]:checked:after {
+    content: '\221A';
+    position: absolute;
+    font-size: 0.7rem;
+    line-height: 1;
+    color: #073642;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -55%);
+}
+
+/* ---------- 图片 ---------- */
+img {
+    max-width: 100%;
+    page-break-inside: avoid;
+}
+
+/* ---------- highlight.js solarized light 代码配色 ---------- */
+.hljs-comment, .hljs-quote       { color: #93a1a1; }
+.hljs-keyword, .hljs-selector-tag, .hljs-addition { color: #859900; }
+.hljs-number, .hljs-string, .hljs-meta .hljs-meta-string,
+.hljs-literal, .hljs-doctag      { color: #2aa198; }
+.hljs-title, .hljs-section, .hljs-name,
+.hljs-selector-id, .hljs-selector-class { color: #268bd2; }
+.hljs-attribute, .hljs-attr, .hljs-variable,
+.hljs-template-variable          { color: #b58900; }
+.hljs-type, .hljs-string_        { color: #cb4b16; }
+.hljs-symbol, .hljs-bullet, .hljs-link { color: #cb4b16; }
+.hljs-built_in, .hljs-class .hljs-title { color: #d33682; }
+.hljs-deletion                   { color: #dc322f; }
+.hljs-emphasis                   { font-style: italic; }
+.hljs-strong                     { font-weight: bold; }
